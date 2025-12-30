@@ -45,6 +45,7 @@ from rainze.core.contracts import (
     SceneType,
 )
 from rainze.core.exceptions import RainzeError
+from rainze.memory.layers.working import WorkingMemory
 
 from .scene_classifier import ClassificationResult, SceneClassifier
 from .tier_handlers import TierHandlerRegistry, TierResponse
@@ -272,6 +273,7 @@ class UnifiedContextManager:
         self,
         scene_classifier: Optional[SceneClassifier] = None,
         tier_handlers: Optional[TierHandlerRegistry] = None,
+        max_history_turns: int = 20,
     ) -> None:
         """
         初始化统一上下文管理器
@@ -282,12 +284,17 @@ class UnifiedContextManager:
                               Scene classifier, creates new instance by default
             tier_handlers: 层级处理器注册表，默认创建新实例
                            Tier handler registry, creates new instance by default
+            max_history_turns: 最大对话历史轮数 / Max conversation history turns
         """
         # 场景分类器 / Scene classifier
         self._scene_classifier = scene_classifier or SceneClassifier()
 
         # 层级处理器注册表 / Tier handler registry
         self._tier_handlers = tier_handlers or TierHandlerRegistry()
+
+        # ⭐ 工作记忆（对话历史）/ Working memory (conversation history)
+        # PRD §0.5b Step 3.1: 会话历史管理
+        self._working_memory = WorkingMemory(max_turns=max_history_turns)
 
         # 记忆写入策略 / Memory write policies
         self._memory_policies: Dict[InteractionSource, MemoryWriteConfig] = (
@@ -526,10 +533,15 @@ class UnifiedContextManager:
             handler = self._custom_handlers[context.source]
             return await handler(context)
 
+        # ⭐ 获取对话历史 / Get conversation history
+        # PRD §0.5b Step 3.1: 会话历史管理
+        conversation_history = self._working_memory.get_history_for_prompt(max_turns=10)
+
         # 构建处理器上下文 / Build handler context
         handler_context = {
             "memory_context": memory_context,
             "trace_id": context.trace_id,
+            "conversation_history": conversation_history,  # ⭐ 注入对话历史
             **context.payload,
         }
 
@@ -562,12 +574,27 @@ class UnifiedContextManager:
             context: 内部上下文 / Internal context
             response: 处理器响应 / Handler response
         """
+        # ⭐ 写入对话历史到工作记忆 / Write to working memory
+        # PRD §0.5b Step 6: 用户输入 + AI回复 → 写入Working Memory
+        if context.user_input and response.success:
+            # 写入用户输入 / Write user input
+            self._working_memory.add_turn(
+                role="user",
+                content=context.user_input,
+            )
+            # 写入 AI 响应 / Write AI response
+            if response.text:
+                self._working_memory.add_turn(
+                    role="assistant",
+                    content=response.text,
+                )
+
         # 获取记忆写入策略 / Get memory write policy
         policy_config = self._memory_policies.get(context.source)
 
         if policy_config and policy_config.policy != MemoryWritePolicy.NONE:
-            # TODO: 实现记忆写入后取消注释
-            # Uncomment after memory write is implemented
+            # TODO: 实现长期记忆写入后取消注释
+            # Uncomment after long-term memory write is implemented
             #
             # await self._write_memory(context, response, policy_config)
             pass
@@ -678,3 +705,22 @@ class UnifiedContextManager:
             层级处理器注册表 / Tier handler registry
         """
         return self._tier_handlers
+
+    def clear_conversation_history(self) -> None:
+        """
+        清空对话历史（开始新会话时调用）
+        Clear conversation history (call when starting new session)
+
+        PRD §0.5b: 新会话触发条件包括用户手动"清空对话"
+        """
+        self._working_memory.clear()
+
+    def get_conversation_turn_count(self) -> int:
+        """
+        获取当前对话轮数
+        Get current conversation turn count
+
+        Returns:
+            对话轮数 / Conversation turn count
+        """
+        return self._working_memory.turn_count
