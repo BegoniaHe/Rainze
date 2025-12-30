@@ -462,15 +462,12 @@ class AnimationController(QObject):
         # 尝试加载清单文件 / Try to load manifest file
         manifest_path = Path(self._resource_path) / "manifest.json"
         manifest_config = None
-        animation_type = "loop"
 
         if manifest_path.exists():
             try:
                 with open(manifest_path, encoding="utf-8") as f:
                     manifest = json.load(f)
                     manifest_config = manifest.get("animations", {}).get(animation_name)
-                    if manifest_config:
-                        animation_type = manifest_config.get("type", "loop")
             except Exception as e:
                 logger.warning(f"加载清单文件失败: {e}")
 
@@ -478,8 +475,8 @@ class AnimationController(QObject):
         from rainze.animation.frames.sequence import FrameSequence
         from rainze.animation.models import AnimationFrame
 
-        # 动作类型不循环 / Action type doesn't loop
-        should_loop = animation_type != "action"
+        # 从 manifest 的 loop 字段判断是否循环 / Use manifest's loop field
+        should_loop = manifest_config.get("loop", True) if manifest_config else True
 
         sequence = FrameSequence(
             name=f"{animation_name}_{variant}",
@@ -505,7 +502,7 @@ class AnimationController(QObject):
                 else:
                     logger.warning(f"帧文件不存在: {frame_file}")
 
-            logger.info(f"从清单加载动画: type={animation_type}, 帧数={len(sequence.frames)}")
+            logger.info(f"从清单加载动画: loop={should_loop}, 帧数={len(sequence.frames)}")
         else:
             # 回退到自动加载所有帧 / Fallback to auto-load all frames
             frame_files = sorted(animation_path.glob("frame_*.png"))
@@ -537,7 +534,8 @@ class AnimationController(QObject):
         logger.info(f"动画已切换: {sequence.name}, 共 {len(sequence.frames)} 帧, 总时长 {sequence.total_duration_ms}ms, loop={should_loop}")
 
         # 处理随机动作系统 / Handle random action system
-        if not is_action and animation_type == "loop":
+        # 仅当基础循环动画时启用 / Only enable for base loop animation
+        if not is_action and should_loop:
             # 保存基础动画名 / Save base animation name
             self._base_animation = animation_name
 

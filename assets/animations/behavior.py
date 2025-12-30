@@ -117,10 +117,12 @@ def on_interaction(ctx, interaction_type):
             ctx.play_action("ear_wiggle")
 
     elif interaction_type == "pet":
-        # 抚摸时的反应
+        # 抚摸时的反应 / Pet reaction
+        ctx.play_action("head_pat")
         if ctx.state.affection > 0.7:
             ctx.play_effect("heart", 2000)
-        ctx.play_action("ear_wiggle")
+        elif ctx.state.affection > 0.4:
+            ctx.play_effect("sparkle", 1500)
 
 
 def get_idle_animation(ctx):
