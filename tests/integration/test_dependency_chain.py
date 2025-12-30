@@ -17,14 +17,12 @@ Created: 2025-12-30
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from unittest.mock import MagicMock
 
 import pytest

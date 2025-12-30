@@ -11,11 +11,8 @@ Created: 2025-12-30
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from datetime import datetime
-from typing import Any, Dict, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

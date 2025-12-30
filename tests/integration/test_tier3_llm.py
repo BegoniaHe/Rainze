@@ -11,7 +11,6 @@ Created: 2025-12-30
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import sys
@@ -396,8 +395,6 @@ class TestTier3FallbackChain:
 
         from rainze.agent import (
             SceneClassifier,
-            Tier1TemplateHandler,
-            Tier2RuleHandler,
             Tier3LLMHandler,
             TierHandlerRegistry,
         )
