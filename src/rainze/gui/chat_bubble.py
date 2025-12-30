@@ -215,6 +215,9 @@ class ChatBubble(TransparentWidget):
         if anchor_point:
             self.update_position(anchor_point)
 
+        # 重置透明度（fade_out 后需要）/ Reset opacity (needed after fade_out)
+        self._opacity_effect.setOpacity(1.0)
+
         # 显示窗口 / Show window
         self.show()
         self.raise_()
