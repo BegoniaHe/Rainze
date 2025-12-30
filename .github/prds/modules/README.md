@@ -1,8 +1,9 @@
 # Rainze 模块设计文档索引
 
-> **版本**: v1.0.0
+> **版本**: v1.1.0
 > **创建时间**: 2025-12-29
-> **关联文档**: [PRD-Rainze.md](../PRD-Rainze.md) v3.0.3 | [TECH-Rainze.md](../../techstacks/TECH-Rainze.md) v1.0.1
+> **最后更新**: 2025-12-30
+> **关联文档**: [PRD-Rainze.md](../PRD-Rainze.md) v3.1.0 | [TECH-Rainze.md](../../techstacks/TECH-Rainze.md) v1.0.1
 
 ---
 
@@ -70,15 +71,71 @@
 | Core | (无) |
 | Storage | Core |
 | RustCore | (无，独立Rust crate) |
-| AI | Core, Storage, RustCore |
+| AI | Core (含contracts), Storage, RustCore |
 | Memory | Core, Storage, RustCore, AI |
-| State | Core, Storage |
-| Agent | Core, AI, Memory, State |
+| State | Core (含contracts), Storage |
+| Agent | Core (含contracts), AI, Memory, State |
 | GUI | Core, State, Animation |
 | Animation | Core, State |
 | Tools | Core, AI, State |
-| Plugins | Core, AI, State, Tools |
-| Features | All above |
+| Plugins | Core (含contracts), AI, State, Tools |
+| Features | Core (含contracts), State, AI, GUI, Agent |
+
+---
+
+## 跨模块契约 ⭐新增 (v1.1.0)
+
+> **参考**: PRD §0.15 跨模块契约规范
+
+所有模块必须遵循 `core.contracts` 中定义的统一类型：
+
+| 契约 | 位置 | 使用模块 |
+|------|------|----------|
+| EmotionTag | `core.contracts.emotion` | AI, State, Animation |
+| SceneType, ResponseTier | `core.contracts.scene` | AI, Agent, Features |
+| InteractionRequest/Response | `core.contracts.interaction` | Agent (UCM), Features, Tools, Plugins |
+| IUnifiedContextManager | `core.contracts.ucm` | Agent, Features, Tools, Plugins |
+| IRustMemorySearch | `core.contracts.rust_bridge` | Memory, RustCore |
+| IRustSystemMonitor | `core.contracts.rust_bridge` | State, Features (system_monitor) |
+| IRustTextProcess | `core.contracts.rust_bridge` | Memory, AI |
+| Tracer, TraceSpan | `core.observability` | 所有模块 |
+
+**规则**:
+- ⛔ 禁止在其他模块重复定义相同结构
+- ✅ 所有模块必须从 `core.contracts` 导入公共类型
+- ✅ 契约变更需同步更新所有引用模块
+- ✅ 所有用户交互必须通过 UCM (IUnifiedContextManager) 处理
+
+### 配置文件契约
+
+| 配置文件 | 位置 | 加载模块 | 说明 |
+|----------|------|----------|------|
+| scene_tier_mapping.json | `config/` | `core.contracts.scene` | 场景-Tier映射 |
+| api_settings.json | `config/` | AI | LLM API配置 |
+| state_settings.json | `config/` | State | 状态系统配置 |
+| memory_settings.json | `config/` | Memory | 记忆系统配置 |
+| animation_settings.json | `config/` | Animation | 动画系统配置 |
+| gui_settings.json | `config/` | GUI | GUI配置 |
+
+### UCM 交互入口规范
+
+所有功能模块（Features/Tools/Plugins）必须通过 UCM 处理用户交互：
+
+```python
+# ✅ 正确：通过UCM处理
+from rainze.core.contracts.interaction import InteractionRequest, InteractionSource
+
+request = InteractionRequest(
+    request_id=uuid4().hex,
+    source=InteractionSource.CHAT_INPUT,
+    timestamp=datetime.now(),
+    payload={"text": user_input}
+)
+response = await ucm.process_interaction(request)
+
+# ⛔ 错误：绕过UCM直接调用
+response = await ai_service.generate_response(user_input)  # 禁止！
+```
 
 ---
 
