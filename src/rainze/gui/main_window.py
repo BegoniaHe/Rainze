@@ -114,34 +114,50 @@ class MainWindow(TransparentWidget):
         Args:
             size: 窗口大小 (width, height) / Window size
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
         width, height = size
         self.setFixedSize(width, height)
 
         # 创建布局 / Create layout
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         # 创建桌宠图像标签 / Create pet image label
         self._pet_label = QLabel(self)
         self._pet_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._pet_label.setScaledContents(True)
+        # 确保标签背景透明 / Ensure label background is transparent
+        self._pet_label.setStyleSheet("background: transparent;")
         layout.addWidget(self._pet_label)
+
+        logger.info(f"MainWindow UI initialized: {width}x{height}")
 
     def _load_initial_frame(self) -> None:
         """
         加载初始帧图像
         Load initial frame image
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
         # 尝试加载占位图 / Try to load placeholder
         frame_path = self._assets_dir / "animations" / "idle" / "default" / "frame_001.png"
 
+        logger.info(f"Loading initial frame from: {frame_path}")
+        logger.info(f"Path exists: {frame_path.exists()}")
+
         if frame_path.exists():
             pixmap = QPixmap(str(frame_path))
+            logger.info(f"Pixmap loaded: null={pixmap.isNull()}, size={pixmap.width()}x{pixmap.height()}")
             if not pixmap.isNull():
                 self.update_frame(pixmap)
                 return
 
         # 如果没有图片，创建空白占位 / If no image, create blank placeholder
+        logger.warning("No initial frame found, creating placeholder")
         self._create_placeholder_frame()
 
     def _create_placeholder_frame(self) -> None:
@@ -165,8 +181,12 @@ class MainWindow(TransparentWidget):
         Args:
             pixmap: 新的帧图像 / New frame pixmap
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
         self._current_frame = pixmap
         if self._pet_label:
+            logger.debug(f"Updating frame: {pixmap.width()}x{pixmap.height()}")
             self._pet_label.setPixmap(pixmap)
 
     def set_pet_size(self, width: int, height: int) -> None:

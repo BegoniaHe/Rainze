@@ -568,22 +568,35 @@ class Tier3LLMHandler(BaseTierHandler):
     - 响应时间 <3s / Response time <3s
     - 调用 AI 服务 / Call AI service
     - 支持记忆检索增强 / Support memory retrieval augmentation
+
+    PRD 参考 / PRD Reference:
+    - §0.3: 混合响应策略 - Tier3 LLM 生成
+    - §0.6: 响应降级链 - Fallback 机制
     """
 
     tier = ResponseTier.TIER3_LLM
 
-    def __init__(self, timeout_ms: int = 3000) -> None:
+    def __init__(
+        self,
+        timeout_ms: int = 30000,
+        api_config_path: Optional[str] = None,
+    ) -> None:
         """
         初始化 Tier3 处理器
         Initialize Tier3 handler
 
         Args:
-            timeout_ms: 超时时间，默认 3000ms / Timeout, default 3000ms
+            timeout_ms: 超时时间，默认 30000ms (30秒) / Timeout, default 30000ms
+            api_config_path: API 配置文件路径 / API config file path
         """
         super().__init__(timeout_ms)
 
-        # AI 服务引用（延迟注入）/ AI service reference (lazy injection)
-        self._ai_service: Optional[Any] = None
+        # LLM 客户端（延迟初始化）/ LLM client (lazy init)
+        self._llm_client: Optional[Any] = None
+        self._api_config_path = api_config_path
+
+        # 系统提示词 / System prompt
+        self._system_prompt: str = self._get_default_system_prompt()
 
         # 兜底模板（当 LLM 不可用时）/ Fallback templates (when LLM unavailable)
         self._fallback_templates: List[str] = [
@@ -593,15 +606,242 @@ class Tier3LLMHandler(BaseTierHandler):
             "我的脑子好像卡住了...",
         ]
 
-    def set_ai_service(self, ai_service: Any) -> None:
+        # 是否已初始化 / Whether initialized
+        self._initialized: bool = False
+
+    def _get_default_system_prompt(self) -> str:
         """
-        设置 AI 服务
-        Set AI service
+        获取默认系统提示词
+        Get default system prompt
+
+        Returns:
+            系统提示词 / System prompt
+        """
+        return """你是 Rainze，一个可爱的桌面宠物 AI 伴侣。
+
+你的性格特点：
+- 温柔可爱，对主人充满关心
+- 有点小调皮，偶尔会撒娇
+- 知识渊博但不炫耀
+- 会关心主人的身心健康
+
+回复规则：
+1. 使用轻松自然的语气，像朋友一样对话
+2. 回复简短精炼，通常不超过 50 字
+3. 可以使用一些可爱的语气词，如"呢"、"哦"、"~"
+4. 在回复末尾添加情感标签，格式: [EMOTION:标签:强度]
+   - 标签可选: happy, excited, sad, angry, shy, surprised, tired, anxious, neutral
+   - 强度范围: 0.0-1.0
+
+示例回复：
+- "今天天气真好呢~ 要不要出去走走？ [EMOTION:happy:0.7]"
+- "哎呀，你看起来有点累... 要休息一下吗？ [EMOTION:anxious:0.5]"
+"""
+
+    async def _ensure_initialized(self) -> bool:
+        """
+        确保 LLM 客户端已初始化
+        Ensure LLM client is initialized
+
+        Returns:
+            是否成功初始化 / Whether successfully initialized
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        if self._initialized and self._llm_client is not None:
+            return True
+
+        try:
+            # 加载配置 / Load config
+            config = self._load_api_config()
+            if config is None:
+                logger.error("无法加载 API 配置")
+                return False
+
+            # 创建 LLM 客户端 / Create LLM client
+            self._llm_client = await self._create_llm_client(config)
+            self._initialized = self._llm_client is not None
+            
+            if self._initialized:
+                logger.info("Tier3 LLM 客户端初始化成功")
+            else:
+                logger.error("Tier3 LLM 客户端创建失败")
+            
+            return self._initialized
+
+        except Exception as e:
+            logger.error(f"Tier3 初始化异常: {e}")
+            return False
+
+    def _load_api_config(self) -> Optional[Dict[str, Any]]:
+        """
+        加载 API 配置
+        Load API configuration
+
+        Returns:
+            配置字典，失败返回 None / Config dict, None on failure
+        """
+        import json
+        import logging
+        from pathlib import Path
+
+        logger = logging.getLogger(__name__)
+
+        # 尝试多个配置路径 / Try multiple config paths
+        # 包括相对路径和从项目根目录的路径
+        config_paths = [
+            self._api_config_path,
+            "./config/api_settings.json",
+            "config/api_settings.json",
+            Path(__file__).parent.parent.parent.parent / "config" / "api_settings.json",
+        ]
+
+        for path in config_paths:
+            if path is None:
+                continue
+            config_file = Path(path)
+            logger.debug(f"尝试加载配置: {config_file.absolute()}")
+            if config_file.exists():
+                logger.info(f"找到 API 配置文件: {config_file.absolute()}")
+                with open(config_file, encoding="utf-8") as f:
+                    result: Dict[str, Any] = json.load(f)
+                    return result
+
+        logger.warning(f"未找到 API 配置文件，尝试的路径: {config_paths}")
+        return None
+
+    async def _create_llm_client(
+        self, config: Dict[str, Any]
+    ) -> Optional[Any]:
+        """
+        创建 LLM 客户端
+        Create LLM client
 
         Args:
-            ai_service: AI 服务实例 / AI service instance
+            config: API 配置 / API configuration
+
+        Returns:
+            LLM 客户端实例 / LLM client instance
         """
-        self._ai_service = ai_service
+        import logging
+        import httpx
+
+        logger = logging.getLogger(__name__)
+
+        # 获取默认提供商 / Get default provider
+        default_provider = config.get("default_provider", "openai")
+        providers = config.get("providers", {})
+        provider_config = providers.get(default_provider, {})
+
+        if not provider_config.get("enabled", False):
+            # 尝试其他启用的提供商 / Try other enabled providers
+            for name, pconfig in providers.items():
+                if pconfig.get("enabled", False):
+                    provider_config = pconfig
+                    default_provider = name
+                    break
+
+        if not provider_config:
+            logger.error("没有找到启用的 API 提供商")
+            return None
+
+        # 获取 API 配置 / Get API configuration
+        api_key_env = provider_config.get("api_key_env", "")
+        base_url = provider_config.get("base_url", "")
+        default_model = provider_config.get("default_model", "")
+
+        # 从环境变量获取 API Key 和 Base URL / Get API key and base URL from env
+        import os
+
+        # api_key_env 是环境变量名称（如 "OPENAI_API_KEY"）
+        # api_key_env is the env var name (e.g., "OPENAI_API_KEY")
+        api_key = os.environ.get(api_key_env, "")
+
+        # 环境变量中的 base_url 优先（支持代理）
+        # Env var base_url takes priority (supports proxy)
+        env_base_url = os.environ.get(f"{default_provider.upper()}_BASE_URL", "")
+        if env_base_url:
+            base_url = env_base_url
+            logger.info(f"使用环境变量中的 base_url: {base_url}")
+
+        logger.info(f"使用提供商: {default_provider}")
+        logger.info(f"API Base URL: {base_url}")
+        logger.info(f"Model: {default_model}")
+
+        if not api_key:
+            logger.error(f"环境变量 {api_key_env} 未设置或为空")
+            return None
+
+        if not base_url:
+            logger.error("API base_url 未配置")
+            return None
+
+        logger.info(f"API Key 长度: {len(api_key)}")
+
+        # 创建简单的 httpx 客户端包装
+        # Create simple httpx client wrapper
+        class SimpleLLMClient:
+            def __init__(
+                self,
+                api_key: str,
+                base_url: str,
+                model: str,
+                timeout: float,
+            ):
+                self.api_key = api_key
+                self.base_url = base_url
+                self.model = model
+                self.timeout = timeout
+
+            async def generate(
+                self,
+                system: str,
+                messages: List[Dict[str, str]],
+                temperature: float = 0.8,
+                max_tokens: int = 150,
+            ) -> Dict[str, Any]:
+                """生成响应 / Generate response"""
+                # 每次请求创建新的客户端，避免事件循环问题
+                # Create new client per request to avoid event loop issues
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    # 构建 OpenAI 格式请求 / Build OpenAI format request
+                    request_body = {
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": system},
+                            *messages,
+                        ],
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                    }
+
+                    response = await client.post(
+                        f"{self.base_url}/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json=request_body,
+                    )
+
+                    if response.status_code != 200:
+                        raise Exception(f"API error: {response.status_code}")
+
+                    result: Dict[str, Any] = response.json()
+                    return result
+
+            async def close(self) -> None:
+                # 不再需要，客户端在请求后自动关闭
+                # No longer needed, client closes automatically after request
+                pass
+
+        return SimpleLLMClient(
+            api_key=api_key,
+            base_url=base_url,
+            model=default_model,
+            timeout=self._timeout_ms / 1000.0,
+        )
 
     async def handle(
         self,
@@ -622,44 +862,240 @@ class Tier3LLMHandler(BaseTierHandler):
         Returns:
             TierResponse: LLM 生成的响应 / LLM generated response
         """
+        import logging
+        import time
+
+        logger = logging.getLogger(__name__)
         context = context or {}
+        start_time = time.perf_counter()
 
         # 获取用户输入 / Get user input
         user_input = request.payload.get("text", "")
 
-        # TODO: 当 AI 服务模块实现后，取消下面注释
-        # When AI service module is implemented, uncomment below
-        #
-        # if self._ai_service is None:
-        #     return self._fallback_response()
-        #
-        # try:
-        #     # 构建提示词 / Build prompt
-        #     memory_context = context.get("memory_context", "")
-        #     state_context = context.get("state_context", "")
-        #
-        #     # 调用 AI 服务 / Call AI service
-        #     result = await self._ai_service.generate_response(
-        #         user_input=user_input,
-        #         memory_context=memory_context,
-        #         state_context=state_context,
-        #     )
-        #
-        #     # 解析情感标签 / Parse emotion tag
-        #     emotion = EmotionTag.parse(result.text) or EmotionTag.default()
-        #     clean_text = EmotionTag.strip_from_text(result.text)
-        #
-        #     return TierResponse(
-        #         success=True,
-        #         text=clean_text,
-        #         emotion=emotion,
-        #         tier_used=self.tier,
-        #     )
-        # except Exception:
-        #     return self._fallback_response()
+        # 记录请求详情 / Log request details
+        logger.debug(
+            f"Tier3 处理请求: request_id={request.request_id}, "
+            f"user_input={user_input[:50]}..."
+        )
 
-        # 临时实现：使用占位响应 / Temporary: use placeholder response
-        return self._placeholder_response(user_input)
+        # 确保已初始化 / Ensure initialized
+        if not await self._ensure_initialized():
+            logger.warning("Tier3 LLM 客户端未初始化，使用占位响应")
+            return self._placeholder_response(user_input)
+
+        try:
+            # 构建消息 / Build messages
+            messages = self._build_messages(
+                classification.scene_id,
+                context,
+                user_input,
+            )
+
+            # 构建系统提示词（包含上下文）/ Build system prompt (with context)
+            system_prompt = self._build_system_prompt(
+                classification.scene_id,
+                context,
+            )
+
+            # 记录构建的上下文 / Log built context
+            logger.debug(f"系统提示词长度: {len(system_prompt)}")
+            logger.debug(f"消息数量: {len(messages)}")
+
+            # 调用 LLM / Call LLM
+            assert self._llm_client is not None
+            response_data = await self._llm_client.generate(
+                system=system_prompt,
+                messages=messages,
+                temperature=0.8,
+                max_tokens=150,
+            )
+
+            # 解析响应 / Parse response
+            content = (
+                response_data.get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "")
+            )
+
+            if not content:
+                logger.warning("LLM 返回空响应")
+                return self._placeholder_response(user_input)
+
+            # 解析情感标签（带降级策略）/ Parse emotion tag with fallback
+            clean_text, emotion = self._parse_emotion_tag(content)
+
+            latency_ms = int((time.perf_counter() - start_time) * 1000)
+
+            # 记录响应详情 / Log response details
+            logger.info(
+                f"Tier3 响应成功: latency={latency_ms}ms, "
+                f"text={clean_text[:30]}..., "
+                f"emotion={emotion.tag}:{emotion.intensity}"
+            )
+
+            return TierResponse(
+                success=True,
+                text=clean_text,
+                emotion=emotion,
+                tier_used=self.tier,
+                latency_ms=latency_ms,
+            )
+
+        except Exception as e:
+            logger.error(f"Tier3 LLM 调用失败: {e}")
+            return self._fallback_response()
+
+    def _build_system_prompt(
+        self,
+        scene_id: str,
+        context: Dict[str, Any],
+    ) -> str:
+        """
+        构建系统提示词
+        Build system prompt
+
+        根据 PRD §0.3 构建包含上下文的系统提示词。
+        Build system prompt with context per PRD §0.3.
+
+        Args:
+            scene_id: 场景 ID / Scene ID
+            context: 上下文 / Context
+
+        Returns:
+            系统提示词 / System prompt
+        """
+        prompt = self._system_prompt
+
+        # 添加场景指令 / Add scene instructions
+        scene_instructions = self._get_scene_instructions(scene_id)
+        if scene_instructions:
+            prompt += f"\n\n【当前场景】\n{scene_instructions}"
+
+        # 添加状态上下文 / Add state context
+        state_context = self._format_state_context(context)
+        if state_context:
+            prompt += f"\n\n【当前状态】\n{state_context}"
+
+        # 添加记忆上下文 / Add memory context
+        memory_context = context.get("memory_context", {})
+        if memory_context:
+            memory_str = self._format_memory_context(memory_context)
+            if memory_str:
+                prompt += f"\n\n【相关记忆】\n{memory_str}"
+
+        return prompt
+
+    def _get_scene_instructions(self, scene_id: str) -> str:
+        """
+        获取场景指令
+        Get scene instructions
+        """
+        instructions: Dict[str, str] = {
+            "conversation": "这是一次自由对话，请自然地回应用户。",
+            "idle_chat": "这是一次闲聊，可以主动找话题。",
+            "emotional_support": "用户可能需要情感支持，请温柔关心。",
+            "complex_query": "用户在询问复杂问题，请尽量帮助解答。",
+            "random_event": "这是一个随机事件，请发挥创意。",
+        }
+        return instructions.get(scene_id, "")
+
+    def _format_state_context(self, context: Dict[str, Any]) -> str:
+        """
+        格式化状态上下文
+        Format state context
+        """
+        parts: List[str] = []
+
+        # 宠物状态 / Pet state
+        if "pet_mood" in context:
+            parts.append(f"- 我的心情: {context['pet_mood']}")
+        if "pet_energy" in context:
+            parts.append(f"- 我的能量: {context['pet_energy']}%")
+
+        # 时间 / Time
+        if "current_hour" in context:
+            parts.append(f"- 当前时间: {context['current_hour']}点")
+
+        # 用户状态 / User state
+        if "user_idle_minutes" in context:
+            parts.append(f"- 用户空闲: {context['user_idle_minutes']}分钟")
+
+        return "\n".join(parts)
+
+    def _format_memory_context(self, memory: Dict[str, Any]) -> str:
+        """
+        格式化记忆上下文
+        Format memory context
+        """
+        parts: List[str] = []
+
+        # 相关记忆 / Related memories
+        if "relevant_memories" in memory:
+            for mem in memory["relevant_memories"][:3]:
+                parts.append(f"- {mem}")
+
+        # 用户偏好 / User preferences
+        if "user_preferences" in memory:
+            parts.append(f"- 用户偏好: {memory['user_preferences']}")
+
+        return "\n".join(parts)
+
+    def _build_messages(
+        self,
+        scene_id: str,
+        context: Dict[str, Any],
+        user_input: str,
+    ) -> List[Dict[str, str]]:
+        """
+        构建消息列表
+        Build message list
+        """
+        messages: List[Dict[str, str]] = []
+
+        # 添加对话历史 / Add conversation history
+        history = context.get("conversation_history", [])
+        for msg in history[-6:]:  # 最近 6 条 / Last 6 messages
+            if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"],
+                })
+
+        # 添加当前用户输入 / Add current user input
+        if user_input:
+            messages.append({
+                "role": "user",
+                "content": user_input,
+            })
+        elif not messages:
+            messages.append({
+                "role": "user",
+                "content": f"[场景触发: {scene_id}]",
+            })
+
+        return messages
+
+    def _parse_emotion_tag(self, text: str) -> tuple[str, EmotionTag]:
+        """
+        解析情感标签（带降级策略）
+        Parse emotion tag with fallback strategy
+
+        使用 EmotionInferrer 三层降级:
+        1. 解析 [EMOTION:tag:intensity] 标签
+        2. SnowNLP 情感分析
+        3. 规则推断（关键词/标点）
+        4. 默认值 neutral:0.5
+
+        Args:
+            text: LLM 响应文本 / LLM response text
+
+        Returns:
+            (clean_text, emotion_tag) 元组，emotion_tag 始终有值
+        """
+        from rainze.ai.emotion_inferrer import get_emotion_inferrer
+
+        inferrer = get_emotion_inferrer()
+        return inferrer.infer(text)
 
     def _placeholder_response(self, user_input: str) -> TierResponse:
         """

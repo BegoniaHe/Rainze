@@ -273,7 +273,7 @@ class SystemTray(QObject):
         - 单击: 显示/隐藏窗口 / Single click: Toggle window
         - 双击: 打开设置 / Double click: Open settings
         """
-        self.activated.emit(int(reason))
+        self.activated.emit(reason.value)
 
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             # 单击 / Single click

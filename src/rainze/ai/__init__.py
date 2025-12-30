@@ -67,6 +67,13 @@ from rainze.ai.exceptions import (
     PromptBuildError,
 )
 
+# 情感推断器 / Emotion Inferrer
+from rainze.ai.emotion_inferrer import (
+    EmotionInferrer,
+    get_emotion_inferrer,
+    infer_emotion,
+)
+
 # 响应生成 / Response Generation
 from rainze.ai.generation import (
     GeneratedResponse,
@@ -108,6 +115,10 @@ __all__: list[str] = [
     "EmbeddingError",
     "AllFallbacksFailedError",
     "GenerationError",
+    # 情感推断 / Emotion Inference
+    "EmotionInferrer",
+    "get_emotion_inferrer",
+    "infer_emotion",
     # 配置 / Config
     "AIConfig",
     "APIConfig",

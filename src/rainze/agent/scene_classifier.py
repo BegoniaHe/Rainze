@@ -226,7 +226,9 @@ class SceneClassifier:
         条件（OR 关系）/ Conditions (OR relation):
         - source 是 PASSIVE_TRIGGER / source is PASSIVE_TRIGGER
         - event_type 在简单事件集合中 / event_type in simple event set
-        - user_input 长度 < 5（非常短的确认）/ user_input length < 5
+
+        ⚠️ CHAT_INPUT 永远不是简单场景，即使输入很短！
+        CHAT_INPUT is NEVER simple, even with short input!
 
         Args:
             source: 交互来源 / Interaction source
@@ -236,6 +238,11 @@ class SceneClassifier:
         Returns:
             是否为简单场景 / Whether it's a simple scene
         """
+        # ⭐ CHAT_INPUT 来源永远不是简单场景，应该触发对话
+        # CHAT_INPUT source is NEVER simple, should trigger conversation
+        if source == InteractionSource.CHAT_INPUT:
+            return False
+
         # 被动触发 -> 简单 / Passive trigger -> simple
         if source == InteractionSource.PASSIVE_TRIGGER:
             return True
@@ -247,12 +254,6 @@ class SceneClassifier:
         # 事件类型在简单集合中 / Event type in simple set
         if event_type and event_type.lower() in self._simple_event_types:
             return True
-
-        # 非常短的输入（可能是确认）/ Very short input (likely confirmation)
-        if user_input and len(user_input.strip()) < 5:
-            # 排除包含复杂关键词的情况 / Exclude if contains complex keywords
-            if not self._contains_complex_keyword(user_input):
-                return True
 
         return False
 
