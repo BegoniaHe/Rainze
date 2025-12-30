@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Animation Manifest",
+  "description": "动画清单配置 / Animation manifest configuration",
+  
+  "animations": {
+    "idle": {
+      "description": "待机动画 / Idle animation - 基础循环动画",
+      "variant": "default",
+      "type": "loop",
+      "loop": true,
+      "frames": [
+        { "file": "frame_001.png", "duration_ms": 100 }
+      ],
+      "random_actions": {
+        "enabled": true,
+        "min_interval_ms": 3000,
+        "max_interval_ms": 8000,
+        "actions": ["ear_wiggle"]
+      }
+    },
+    
+    "ear_wiggle": {
+      "description": "摇耳朵 / Ear wiggle - 随机插入动作",
+      "variant": "default",
+      "type": "action",
+      "loop": false,
+      "frames": [
+        { "file": "frame_001.png", "duration_ms": 150 },
+        { "file": "frame_002.png", "duration_ms": 150 },
+        { "file": "frame_003.png", "duration_ms": 150 },
+        { "file": "frame_002.png", "duration_ms": 150 }
+      ]
+    },
+    
+    "thinking": {
+      "description": "思考动画 / Thinking animation - 触发式动画",
+      "variant": "default",
+      "type": "triggered",
+      "loop": true,
+      "frames": [
+        { "file": "frame_001.png", "duration_ms": 500 }
+      ]
+    },
+    
+    "happy": {
+      "description": "开心动画 / Happy animation - 情感触发动画",
+      "variant": "default",
+      "type": "triggered",
+      "loop": true,
+      "frames": [
+        { "file": "frame_001.png", "duration_ms": 200 },
+        { "file": "frame_002.png", "duration_ms": 200 },
+        { "file": "frame_003.png", "duration_ms": 200 },
+        { "file": "frame_002.png", "duration_ms": 200 }
+      ]
+    }
+  },
+  
+  "animation_types": {
+    "loop": "持续循环播放的基础动画，可配置随机插入动作",
+    "action": "一次性播放的动作，完成后返回上一动画",
+    "triggered": "由事件触发的动画，需要手动切换回基础动画"
+  },
+  
+  "layer_system": {
+    "description": "3层动画系统 / 3-layer animation system",
+    "layers": {
+      "0": "Background - 阴影/背景",
+      "1": "Character - 角色帧动画",
+      "2": "Overlay - 特效/粒子"
+    }
+  }
+}
+
