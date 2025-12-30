@@ -584,6 +584,14 @@ def main() -> int:
     if not config_dir.exists():
         config_dir.mkdir(parents=True, exist_ok=True)
 
+    # 2.1 加载应用配置 / Load app settings
+    import json
+    app_settings_path = config_dir / "app_settings.json"
+    app_settings: dict = {}
+    if app_settings_path.exists():
+        with open(app_settings_path, encoding="utf-8") as f:
+            app_settings = json.load(f)
+
     # 3. 创建事件总线 / Create event bus
     event_bus = EventBus()
 
@@ -627,10 +635,11 @@ def main() -> int:
     )
 
     # 5.3 输入面板 / Input panel
+    input_config = app_settings.get("input", {})
     input_panel = InputPanel(
-        max_history=50,
+        max_history=input_config.get("max_history", 50),
         placeholder="和我聊聊吧~",
-        max_length=500,
+        max_length=input_config.get("max_length", 1000),
         show_send_button=True,
     )
     input_panel.setFixedWidth(300)
@@ -706,8 +715,16 @@ def main() -> int:
     # 双击切换模式 / Double click toggles mode
     main_window.pet_double_clicked.connect(main_window.toggle_display_mode)
 
-    # 气泡隐藏时也隐藏输入面板 / Hide input panel when bubble hides
-    chat_bubble.hidden_signal.connect(input_panel.hide_panel)
+    # 气泡隐藏时，仅当用户未在输入时隐藏输入面板
+    # Hide input panel when bubble hides, only if user is not typing
+    def on_bubble_hidden() -> None:
+        # 如果输入框有内容，说明用户正在输入，不隐藏
+        # If input has content, user is typing, don't hide
+        if input_panel.get_text().strip():
+            return
+        input_panel.hide_panel()
+
+    chat_bubble.hidden_signal.connect(on_bubble_hidden)
 
     # ========================================
     # 8. 启动应用 / Start application
