@@ -16,27 +16,94 @@
 #   - MinGW (for Rust GNU target on Windows)
 
 # ============================================================================
+# 平台检测 / Platform Detection
+# ============================================================================
+
+# 检测操作系统 / Detect operating system
+ifeq ($(OS),Windows_NT)
+    PLATFORM := windows
+    SHELL := powershell.exe
+    .SHELLFLAGS := -NoProfile -Command
+    # Windows 路径 / Windows paths
+    VENV := .venv
+    PYTHON := $(VENV)\Scripts\python.exe
+    MATURIN := $(VENV)\Scripts\maturin.exe
+    RUFF := $(VENV)\Scripts\ruff.exe
+    MYPY := $(VENV)\Scripts\mypy.exe
+    PYTEST := $(VENV)\Scripts\pytest.exe
+    # MinGW 路径 / MinGW path
+    MINGW_PATH := C:\msys64\mingw64\bin
+    # Wheel 文件名 / Wheel filename
+    RUST_WHEEL_PATTERN := rainze_core-*-cp312-cp312-win_amd64.whl
+else
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+        PLATFORM := macos
+        # macOS wheel 架构检测 / macOS wheel architecture detection
+        UNAME_M := $(shell uname -m)
+        ifeq ($(UNAME_M),arm64)
+            RUST_WHEEL_PATTERN := rainze_core-*-cp312-cp312-macosx_*_arm64.whl
+        else
+            RUST_WHEEL_PATTERN := rainze_core-*-cp312-cp312-macosx_*_x86_64.whl
+        endif
+    else
+        PLATFORM := linux
+        RUST_WHEEL_PATTERN := rainze_core-*-cp312-cp312-manylinux*.whl
+    endif
+    SHELL := /bin/bash
+    .SHELLFLAGS := -c
+    # Unix 路径 / Unix paths
+    VENV := .venv
+    PYTHON := $(VENV)/bin/python
+    MATURIN := $(VENV)/bin/maturin
+    RUFF := $(VENV)/bin/ruff
+    MYPY := $(VENV)/bin/mypy
+    PYTEST := $(VENV)/bin/pytest
+    MINGW_PATH :=
+endif
+
+# ============================================================================
 # 配置 / Configuration
 # ============================================================================
 
-SHELL := powershell.exe
-.SHELLFLAGS := -NoProfile -Command
-
-# 路径 / Paths
-VENV := .venv
-PYTHON := $(VENV)\Scripts\python.exe
 UV := uv
-MATURIN := $(VENV)\Scripts\maturin.exe
-RUFF := $(VENV)\Scripts\ruff.exe
-MYPY := $(VENV)\Scripts\mypy.exe
-PYTEST := $(VENV)\Scripts\pytest.exe
 
 # Rust 配置 / Rust configuration
 RUST_TARGET := rainze_core
-RUST_WHEEL := $(RUST_TARGET)\target\wheels\rainze_core-0.1.0-cp312-cp312-win_amd64.whl
+RUST_WHEEL_DIR := $(RUST_TARGET)/target/wheels
 
-# MinGW 路径 (根据系统调整) / MinGW path (adjust for your system)
-MINGW_PATH := C:\msys64\mingw64\bin
+# ============================================================================
+# 跨平台辅助函数 / Cross-platform Helper Functions
+# ============================================================================
+
+# 定义颜色输出 (Unix 使用 ANSI, Windows 使用 Write-Host)
+# Define colored output (Unix uses ANSI, Windows uses Write-Host)
+ifeq ($(PLATFORM),windows)
+    define log_info
+		@Write-Host "$(1)" -ForegroundColor Cyan
+    endef
+    define log_success
+		@Write-Host "$(1)" -ForegroundColor Green
+    endef
+    define log_warn
+		@Write-Host "$(1)" -ForegroundColor Yellow
+    endef
+else
+    # ANSI 颜色代码 / ANSI color codes
+    CYAN := \033[36m
+    GREEN := \033[32m
+    YELLOW := \033[33m
+    RESET := \033[0m
+    define log_info
+		@echo "$(CYAN)$(1)$(RESET)"
+    endef
+    define log_success
+		@echo "$(GREEN)$(1)$(RESET)"
+    endef
+    define log_warn
+		@echo "$(YELLOW)$(1)$(RESET)"
+    endef
+endif
 
 # ============================================================================
 # 默认目标 / Default target
@@ -44,6 +111,7 @@ MINGW_PATH := C:\msys64\mingw64\bin
 
 .PHONY: help
 help:
+ifeq ($(PLATFORM),windows)
 	@Write-Host "Rainze Makefile - AI Desktop Pet" -ForegroundColor Cyan
 	@Write-Host "=================================" -ForegroundColor Cyan
 	@Write-Host ""
@@ -72,23 +140,65 @@ help:
 	@Write-Host "  make clean      - 清理构建产物 / Clean build artifacts"
 	@Write-Host "  make clean-all  - 完全清理 / Full clean (including venv)"
 	@Write-Host ""
+else
+	@printf "\033[36mRainze Makefile - AI Desktop Pet\033[0m\n"
+	@printf "\033[36m=================================\033[0m\n"
+	@printf "\n"
+	@printf "\033[33mSetup / 环境配置:\033[0m\n"
+	@printf "  make setup      - 完整环境初始化 / Full environment setup\n"
+	@printf "  make venv       - 创建虚拟环境 / Create virtual environment\n"
+	@printf "  make deps       - 安装 Python 依赖 / Install Python dependencies\n"
+	@printf "\n"
+	@printf "\033[33mBuild / 构建:\033[0m\n"
+	@printf "  make build      - 构建所有组件 / Build all components\n"
+	@printf "  make build-rust - 构建 Rust 模块 / Build Rust module\n"
+	@printf "  make build-dev  - 开发模式构建 / Development build\n"
+	@printf "\n"
+	@printf "\033[33mRun / 运行:\033[0m\n"
+	@printf "  make run        - 运行应用 / Run application\n"
+	@printf "  make verify     - 验证环境 / Verify environment\n"
+	@printf "\n"
+	@printf "\033[33mQuality / 质量:\033[0m\n"
+	@printf "  make test       - 运行测试 / Run tests\n"
+	@printf "  make lint       - 代码检查 / Lint code\n"
+	@printf "  make format     - 格式化代码 / Format code\n"
+	@printf "  make typecheck  - 类型检查 / Type check\n"
+	@printf "  make check      - 运行所有检查 / Run all checks\n"
+	@printf "\n"
+	@printf "\033[33mClean / 清理:\033[0m\n"
+	@printf "  make clean      - 清理构建产物 / Clean build artifacts\n"
+	@printf "  make clean-all  - 完全清理 / Full clean (including venv)\n"
+	@printf "\n"
+endif
 
 # ============================================================================
 # 环境配置 / Environment Setup
 # ============================================================================
 
 .PHONY: setup
-setup: venv deps build-rust
-	@Write-Host "✅ 环境配置完成 / Setup complete!" -ForegroundColor Green
+setup: venv deps build-dev
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 环境配置完成 / Setup complete!" -ForegroundColor Green
+else
+	@printf "\033[32m 环境配置完成 / Setup complete!\033[0m\n"
+endif
 
 .PHONY: venv
 venv:
-	@Write-Host "📦 创建虚拟环境 / Creating virtual environment..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 创建虚拟环境 / Creating virtual environment..." -ForegroundColor Cyan
+else
+	@printf "\033[36m 创建虚拟环境 / Creating virtual environment...\033[0m\n"
+endif
 	@$(UV) venv
 
 .PHONY: deps
 deps:
+ifeq ($(PLATFORM),windows)
 	@Write-Host "📥 安装依赖 / Installing dependencies..." -ForegroundColor Cyan
+else
+	@printf "\033[36m📥 安装依赖 / Installing dependencies...\033[0m\n"
+endif
 	@$(UV) sync --all-extras
 
 # ============================================================================
@@ -97,22 +207,41 @@ deps:
 
 .PHONY: build
 build: build-rust install-rust
-	@Write-Host "✅ 构建完成 / Build complete!" -ForegroundColor Green
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 构建完成 / Build complete!" -ForegroundColor Green
+else
+	@printf "\033[32m 构建完成 / Build complete!\033[0m\n"
+endif
 
 .PHONY: build-rust
 build-rust:
-	@Write-Host "🦀 构建 Rust 模块 / Building Rust module..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 构建 Rust 模块 / Building Rust module..." -ForegroundColor Cyan
 	@$$env:PATH = "$(MINGW_PATH);$$env:PATH"; $$env:PYO3_PYTHON = (Resolve-Path "$(PYTHON)").Path; $$maturin = (Resolve-Path "$(MATURIN)").Path; Push-Location $(RUST_TARGET); & $$maturin build --release; Pop-Location
+else
+	@printf "\033[36m 构建 Rust 模块 / Building Rust module...\033[0m\n"
+	@cd $(RUST_TARGET) && PYO3_PYTHON=$(CURDIR)/$(PYTHON) $(CURDIR)/$(MATURIN) build --release
+endif
 
 .PHONY: build-dev
 build-dev:
-	@Write-Host "🔧 开发模式构建 / Development build..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 开发模式构建 / Development build..." -ForegroundColor Cyan
 	@$$env:PATH = "$(MINGW_PATH);$$env:PATH"; $$env:PYO3_PYTHON = (Resolve-Path "$(PYTHON)").Path; $$maturin = (Resolve-Path "$(MATURIN)").Path; Push-Location $(RUST_TARGET); & $$maturin develop; Pop-Location
+else
+	@printf "\033[36m 开发模式构建 / Development build...\033[0m\n"
+	@cd $(RUST_TARGET) && PYO3_PYTHON=$(CURDIR)/$(PYTHON) $(CURDIR)/$(MATURIN) develop
+endif
 
 .PHONY: install-rust
 install-rust:
-	@Write-Host "📦 安装 Rust wheel / Installing Rust wheel..." -ForegroundColor Cyan
-	@$(UV) pip install $(RUST_WHEEL) --force-reinstall
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 安装 Rust wheel / Installing Rust wheel..." -ForegroundColor Cyan
+	@$(UV) pip install (Get-ChildItem "$(RUST_WHEEL_DIR)\$(RUST_WHEEL_PATTERN)" | Select-Object -First 1).FullName --force-reinstall
+else
+	@printf "\033[36m 安装 Rust wheel / Installing Rust wheel...\033[0m\n"
+	@$(UV) pip install $$(ls $(RUST_WHEEL_DIR)/$(RUST_WHEEL_PATTERN) | head -1) --force-reinstall
+endif
 
 # ============================================================================
 # 运行 / Run
@@ -120,13 +249,23 @@ install-rust:
 
 .PHONY: run
 run:
-	@Write-Host "🚀 启动 Rainze / Starting Rainze..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 启动 Rainze / Starting Rainze..." -ForegroundColor Cyan
 	@& "$(PYTHON)" -m rainze.main
+else
+	@printf "\033[36m 启动 Rainze / Starting Rainze...\033[0m\n"
+	@$(PYTHON) -m rainze.main
+endif
 
 .PHONY: verify
 verify:
-	@Write-Host "🔍 验证环境 / Verifying environment..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 验证环境 / Verifying environment..." -ForegroundColor Cyan
 	@& "$(PYTHON)" -c "import rainze_core; import rainze; print('rainze:', rainze.__version__); m = rainze_core.SystemMonitor(); print('rainze_core: OK'); print(f'CPU: {m.get_cpu_usage():.1f}%%'); print(f'Memory: {m.get_memory_usage():.1f}%%')"
+else
+	@printf "\033[36m 验证环境 / Verifying environment...\033[0m\n"
+	@$(PYTHON) -c "import rainze_core; import rainze; print('rainze:', rainze.__version__); m = rainze_core.SystemMonitor(); print('rainze_core: OK'); print(f'CPU: {m.get_cpu_usage():.1f}%'); print(f'Memory: {m.get_memory_usage():.1f}%')"
+endif
 
 # ============================================================================
 # 质量检查 / Quality Checks
@@ -134,33 +273,83 @@ verify:
 
 .PHONY: test
 test:
-	@Write-Host "🧪 运行测试 / Running tests..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 运行测试 / Running tests..." -ForegroundColor Cyan
 	@& "$(PYTEST)" tests/ -v
+else
+	@printf "\033[36m 运行测试 / Running tests...\033[0m\n"
+	@$(PYTEST) tests/ -v
+endif
+
+.PHONY: test-unit
+test-unit:
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 运行单元测试 / Running unit tests..." -ForegroundColor Cyan
+	@& "$(PYTEST)" tests/unit/ -v
+else
+	@printf "\033[36m 运行单元测试 / Running unit tests...\033[0m\n"
+	@$(PYTEST) tests/unit/ -v
+endif
+
+.PHONY: test-cov
+test-cov:
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 运行测试 (覆盖率) / Running tests with coverage..." -ForegroundColor Cyan
+	@& "$(PYTEST)" tests/ -v --cov=src/rainze --cov-report=term-missing
+else
+	@printf "\033[36m 运行测试 (覆盖率) / Running tests with coverage...\033[0m\n"
+	@$(PYTEST) tests/ -v --cov=src/rainze --cov-report=term-missing
+endif
 
 .PHONY: lint
 lint:
+ifeq ($(PLATFORM),windows)
 	@Write-Host "🔎 代码检查 / Linting..." -ForegroundColor Cyan
 	@& "$(RUFF)" check src/ tests/
+else
+	@printf "\033[36m🔎 代码检查 / Linting...\033[0m\n"
+	@$(RUFF) check src/ tests/
+endif
 
 .PHONY: format
 format:
+ifeq ($(PLATFORM),windows)
 	@Write-Host "✨ 格式化代码 / Formatting..." -ForegroundColor Cyan
 	@& "$(RUFF)" format src/ tests/
 	@& "$(RUFF)" check src/ tests/ --fix
+else
+	@printf "\033[36m✨ 格式化代码 / Formatting...\033[0m\n"
+	@$(RUFF) format src/ tests/
+	@$(RUFF) check src/ tests/ --fix
+endif
 
 .PHONY: typecheck
 typecheck:
-	@Write-Host "📝 类型检查 / Type checking..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 类型检查 / Type checking..." -ForegroundColor Cyan
 	@& "$(MYPY)" src/rainze --ignore-missing-imports
+else
+	@printf "\033[36m 类型检查 / Type checking...\033[0m\n"
+	@$(MYPY) src/rainze --ignore-missing-imports
+endif
 
 .PHONY: check
 check: lint typecheck test
-	@Write-Host "✅ 所有检查通过 / All checks passed!" -ForegroundColor Green
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 所有检查通过 / All checks passed!" -ForegroundColor Green
+else
+	@printf "\033[32m 所有检查通过 / All checks passed!\033[0m\n"
+endif
 
 .PHONY: rust-check
 rust-check:
-	@Write-Host "🦀 Rust 检查 / Rust check..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " Rust 检查 / Rust check..." -ForegroundColor Cyan
 	@$$env:PATH = "$(MINGW_PATH);$$env:PATH"; $$env:PYO3_PYTHON = (Resolve-Path "$(PYTHON)").Path; Push-Location $(RUST_TARGET); cargo check; cargo clippy; Pop-Location
+else
+	@printf "\033[36m Rust 检查 / Rust check...\033[0m\n"
+	@cd $(RUST_TARGET) && cargo check && cargo clippy
+endif
 
 # ============================================================================
 # 清理 / Clean
@@ -168,16 +357,29 @@ rust-check:
 
 .PHONY: clean
 clean:
+ifeq ($(PLATFORM),windows)
 	@Write-Host "🧹 清理构建产物 / Cleaning build artifacts..." -ForegroundColor Cyan
 	@Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $(RUST_TARGET)\target, dist, build, *.egg-info, .pytest_cache, .mypy_cache, .ruff_cache, __pycache__
 	@Get-ChildItem -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-	@Write-Host "✅ 清理完成 / Clean complete!" -ForegroundColor Green
+	@Write-Host " 清理完成 / Clean complete!" -ForegroundColor Green
+else
+	@printf "\033[36m🧹 清理构建产物 / Cleaning build artifacts...\033[0m\n"
+	@rm -rf $(RUST_TARGET)/target dist build *.egg-info .pytest_cache .mypy_cache .ruff_cache
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@printf "\033[32m 清理完成 / Clean complete!\033[0m\n"
+endif
 
 .PHONY: clean-all
 clean-all: clean
+ifeq ($(PLATFORM),windows)
 	@Write-Host "🧹 完全清理 / Full clean..." -ForegroundColor Cyan
 	@Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $(VENV)
-	@Write-Host "✅ 完全清理完成 / Full clean complete!" -ForegroundColor Green
+	@Write-Host " 完全清理完成 / Full clean complete!" -ForegroundColor Green
+else
+	@printf "\033[36m🧹 完全清理 / Full clean...\033[0m\n"
+	@rm -rf $(VENV)
+	@printf "\033[32m 完全清理完成 / Full clean complete!\033[0m\n"
+endif
 
 # ============================================================================
 # 开发辅助 / Development Helpers
@@ -185,12 +387,21 @@ clean-all: clean
 
 .PHONY: pre-commit
 pre-commit:
-	@Write-Host "🪝 安装 pre-commit hooks / Installing pre-commit hooks..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 安装 pre-commit hooks / Installing pre-commit hooks..." -ForegroundColor Cyan
 	@& "$(VENV)\Scripts\pre-commit.exe" install
+else
+	@printf "\033[36m 安装 pre-commit hooks / Installing pre-commit hooks...\033[0m\n"
+	@$(VENV)/bin/pre-commit install
+endif
 
 .PHONY: update
 update:
-	@Write-Host "📦 更新依赖 / Updating dependencies..." -ForegroundColor Cyan
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 更新依赖 / Updating dependencies..." -ForegroundColor Cyan
+else
+	@printf "\033[36m 更新依赖 / Updating dependencies...\033[0m\n"
+endif
 	@$(UV) lock --upgrade
 	@$(UV) sync --all-extras
 
@@ -200,5 +411,10 @@ update:
 
 .PHONY: package
 package: build
-	@Write-Host "📦 打包应用 / Packaging application..." -ForegroundColor Cyan
-	@Write-Host "⚠️  TODO: 实现打包逻辑 / TODO: Implement packaging" -ForegroundColor Yellow
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 打包应用 / Packaging application..." -ForegroundColor Cyan
+	@Write-Host "  TODO: 实现打包逻辑 / TODO: Implement packaging" -ForegroundColor Yellow
+else
+	@printf "\033[36m 打包应用 / Packaging application...\033[0m\n"
+	@printf "\033[33m  TODO: 实现打包逻辑 / TODO: Implement packaging\033[0m\n"
+endif

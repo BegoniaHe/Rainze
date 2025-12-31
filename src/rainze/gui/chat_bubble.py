@@ -177,7 +177,7 @@ class ChatBubble(TransparentWidget):
             QLabel {
                 color: #333333;
                 font-size: 14px;
-                font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+                font-family: "Maple Mono NF CN", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
                 background: transparent;
             }
             QPushButton {

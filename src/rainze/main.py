@@ -562,9 +562,10 @@ def main() -> int:
     except ImportError:
         pass  # dotenv 是可选的 / dotenv is optional
 
-    # 导入 PySide6（延迟导入以加速启动）
+    # 导入 PySide6
     # Import PySide6 (lazy import for faster startup)
     from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QFontDatabase
     from PySide6.QtWidgets import QApplication
 
     from rainze.agent import UnifiedContextManager
@@ -578,6 +579,14 @@ def main() -> int:
     qt_app.setApplicationName("Rainze")
     qt_app.setApplicationVersion("0.1.0")
     qt_app.setQuitOnLastWindowClosed(False)  # 托盘模式 / Tray mode
+
+    # 1.1 加载自定义字体 / Load custom fonts
+    fonts_dir = Path(__file__).parent.parent.parent / "assets" / "fonts"
+    if fonts_dir.exists():
+        for font_file in fonts_dir.glob("*.ttf"):
+            font_id = QFontDatabase.addApplicationFont(str(font_file))
+            if font_id < 0:
+                print(f"Warning: Failed to load font {font_file.name}")
 
     # 2. 确定配置目录 / Determine config directory
     config_dir = Path("./config")

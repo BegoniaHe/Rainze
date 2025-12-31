@@ -149,7 +149,7 @@ class InputPanel(QWidget):
                 border-radius: 6px;
                 padding: 6px 10px;
                 font-size: 14px;
-                font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+                font-family: "Maple Mono NF CN", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
                 color: #333333;
             }
             QLineEdit:focus {
@@ -166,7 +166,7 @@ class InputPanel(QWidget):
                 border-radius: 6px;
                 padding: 6px 12px;
                 font-size: 13px;
-                font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+                font-family: "Maple Mono NF CN", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
             }
             QPushButton:hover {
                 background-color: #3A7FC8;
