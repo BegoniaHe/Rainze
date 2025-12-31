@@ -1,0 +1,106 @@
+/*
+ * Rainze GUI - 菜单样式
+ * Menu Styles
+ *
+ * Author: Rainze Team
+ * Created: 2025-12-31
+ */
+
+/* ========================================
+ * 主菜单 / Main Menu
+ * ======================================== */
+
+QMenu {
+    background-color: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 6px 0;
+}
+
+/* ========================================
+ * 菜单项 / Menu Item
+ * ======================================== */
+
+QMenu::item {
+    padding: 8px 24px 8px 16px;
+    color: #333333;
+    font-size: 13px;
+    border-radius: 0;
+}
+
+QMenu::item:selected {
+    background-color: rgba(74, 144, 217, 0.1);
+    color: #4A90D9;
+}
+
+QMenu::item:disabled {
+    color: #AAAAAA;
+}
+
+/* ========================================
+ * 菜单图标 / Menu Icon
+ * ======================================== */
+
+QMenu::icon {
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+/* ========================================
+ * 分隔线 / Separator
+ * ======================================== */
+
+QMenu::separator {
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.1);
+    margin: 4px 12px;
+}
+
+/* ========================================
+ * 子菜单指示器 / Submenu Indicator
+ * ======================================== */
+
+QMenu::right-arrow {
+    margin-right: 8px;
+}
+
+/* ========================================
+ * 勾选项 / Checkable Items
+ * ======================================== */
+
+QMenu::indicator {
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+}
+
+QMenu::indicator:checked {
+    background-color: #4A90D9;
+    border-radius: 3px;
+}
+
+/* ========================================
+ * 暗色主题变体 / Dark Theme Variant
+ * ======================================== */
+
+QMenu[theme="dark"] {
+    background-color: rgba(40, 40, 40, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+QMenu[theme="dark"]::item {
+    color: #E0E0E0;
+}
+
+QMenu[theme="dark"]::item:selected {
+    background-color: rgba(74, 144, 217, 0.2);
+    color: #6AB0F7;
+}
+
+QMenu[theme="dark"]::item:disabled {
+    color: #666666;
+}
+
+QMenu[theme="dark"]::separator {
+    background-color: rgba(255, 255, 255, 0.1);
+}

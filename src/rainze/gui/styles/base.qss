@@ -1,0 +1,85 @@
+/*
+ * Rainze GUI - 基础样式变量
+ * Base Style Variables
+ *
+ * 本文件定义全局 CSS 变量和基础样式。
+ * This file defines global CSS variables and base styles.
+ *
+ * 使用方法 / Usage:
+ * - 在其他 QSS 文件中通过 @import 引入（PySide6 不支持，需手动合并）
+ * - 或者作为第一个样式加载
+ *
+ * Author: Rainze Team
+ * Created: 2025-12-31
+ */
+
+/* ========================================
+ * 基础字体 / Base Fonts
+ * ======================================== */
+
+* {
+    font-family: "Maple Mono NF CN", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+/* ========================================
+ * 通用滚动条 / Common Scrollbar
+ * ======================================== */
+
+QScrollBar:vertical {
+    background: rgba(0, 0, 0, 0.05);
+    width: 8px;
+    margin: 0;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical {
+    background: rgba(0, 0, 0, 0.2);
+    min-height: 30px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+    background: none;
+}
+
+QScrollBar:horizontal {
+    background: rgba(0, 0, 0, 0.05);
+    height: 8px;
+    margin: 0;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal {
+    background: rgba(0, 0, 0, 0.2);
+    min-width: 30px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0;
+    background: none;
+}
+
+/* ========================================
+ * 工具提示 / Tooltip
+ * ======================================== */
+
+QToolTip {
+    background-color: rgba(50, 50, 50, 0.95);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
