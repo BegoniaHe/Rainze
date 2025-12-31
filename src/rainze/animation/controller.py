@@ -754,12 +754,46 @@ class AnimationController(QObject):
         Play effect
 
         Args:
-            effect_name: 特效名称 / Effect name
+            effect_name: 特效名称 / Effect name (sparkle, heart, etc.)
             duration_ms: 持续时间 / Duration in ms
         """
-        # 特效播放将在 EffectLayer 实现后添加
-        # Effect playback will be added after EffectLayer implementation
-        pass
+        # 获取或创建叠加层 / Get or create overlay layer
+        overlay = self._get_or_create_overlay_layer()
+        if overlay is None:
+            return
+
+        # 转换名称为 EffectType / Convert name to EffectType
+        from rainze.animation.layers import EffectType
+
+        try:
+            effect_type = EffectType(effect_name)
+            overlay.play_effect(effect_type, duration_ms=duration_ms)
+        except ValueError:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"未知特效名称: {effect_name}")
+
+    def _get_or_create_overlay_layer(self) -> Optional[AnimationLayer]:
+        """
+        获取或创建叠加层（内部方法）
+        Get or create overlay layer (internal method)
+
+        Returns:
+            叠加层实例 / Overlay layer instance
+        """
+        from rainze.animation.layers import OverlayLayer
+
+        overlay = self._layers.get(self.LAYER_OVERLAY)
+        if overlay is None:
+            # 创建叠加层 / Create overlay layer
+            resource_path = str(self._resource_path) if self._resource_path else None
+            overlay = OverlayLayer(
+                resource_path=resource_path,
+                canvas_size=self._canvas_size,
+            )
+            self._layers[self.LAYER_OVERLAY] = overlay
+
+        return overlay
 
     def stop_effect(self, effect_name: Optional[str] = None) -> None:
         """
@@ -769,7 +803,23 @@ class AnimationController(QObject):
         Args:
             effect_name: 特效名称，None 停止所有 / Effect name, None for all
         """
-        pass
+        overlay = self._layers.get(self.LAYER_OVERLAY)
+        if overlay is None:
+            return
+
+        from rainze.animation.layers import EffectType, OverlayLayer
+
+        if not isinstance(overlay, OverlayLayer):
+            return
+
+        if effect_name is None:
+            overlay.stop_all_effects()
+        else:
+            try:
+                effect_type = EffectType(effect_name)
+                overlay.stop_effect(effect_type)
+            except ValueError:
+                pass
 
     # ==================== 口型同步 / Lip Sync ====================
 

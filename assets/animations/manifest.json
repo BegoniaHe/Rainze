@@ -7,9 +7,22 @@
     "idle": {
       "description": "待机动画 / Idle animation",
       "frames": [
-        { "file": "frame_001.png", "duration_ms": 100 }
+        { "file": "frame_001.png", "duration_ms": 150 },
+        { "file": "frame_002.png", "duration_ms": 150 },
+        { "file": "frame_003.png", "duration_ms": 150 },
+        { "file": "frame_004.png", "duration_ms": 150 },
+        { "file": "frame_005.png", "duration_ms": 150 },
+        { "file": "frame_006.png", "duration_ms": 150 },
+        { "file": "frame_007.png", "duration_ms": 150 },
+        { "file": "frame_008.png", "duration_ms": 150 }
       ],
-      "loop": true
+      "loop": true,
+      "random_actions": {
+        "enabled": true,
+        "actions": ["ear_wiggle", "head_pat"],
+        "min_interval_ms": 5000,
+        "max_interval_ms": 15000
+      }
     },
     
     "ear_wiggle": {
@@ -26,7 +39,10 @@
     "thinking": {
       "description": "思考动画 / Thinking animation",
       "frames": [
-        { "file": "frame_001.png", "duration_ms": 500 }
+        { "file": "frame_001.png", "duration_ms": 300 },
+        { "file": "frame_002.png", "duration_ms": 300 },
+        { "file": "frame_003.png", "duration_ms": 300 },
+        { "file": "frame_004.png", "duration_ms": 300 }
       ],
       "loop": true
     },
@@ -34,8 +50,8 @@
     "head_pat": {
       "description": "摸头动画 / Head pat animation",
       "frames": [
-        { "file": "frame_001.png", "duration_ms": 150 },
-        { "file": "frame_002.png", "duration_ms": 150 }
+        { "file": "frame_001.png", "duration_ms": 200 },
+        { "file": "frame_002.png", "duration_ms": 200 }
       ],
       "loop": false
     },
@@ -43,10 +59,12 @@
     "happy": {
       "description": "开心动画 / Happy animation",
       "frames": [
-        { "file": "frame_001.png", "duration_ms": 200 },
-        { "file": "frame_002.png", "duration_ms": 200 },
-        { "file": "frame_003.png", "duration_ms": 200 },
-        { "file": "frame_002.png", "duration_ms": 200 }
+        { "file": "frame_001.png", "duration_ms": 150 },
+        { "file": "frame_002.png", "duration_ms": 150 },
+        { "file": "frame_003.png", "duration_ms": 150 },
+        { "file": "frame_004.png", "duration_ms": 150 },
+        { "file": "frame_005.png", "duration_ms": 150 },
+        { "file": "frame_006.png", "duration_ms": 150 }
       ],
       "loop": true
     }
