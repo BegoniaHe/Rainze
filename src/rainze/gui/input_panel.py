@@ -3,7 +3,9 @@
 Input Panel Component
 
 本模块提供用户文本输入功能，支持历史记录浏览。
+作为独立透明窗口，无系统窗口装饰（标题栏/按钮）。
 This module provides text input with history navigation.
+As independent transparent window without system decorations.
 
 Reference:
     - MOD: .github/prds/modules/MOD-GUI.md §3.6
@@ -11,7 +13,7 @@ Reference:
 
 Author: Rainze Team
 Created: 2025-12-30
-Updated: 2025-12-31 - 使用外部 QSS 样式
+Updated: 2026-01-01 - TransparentWidget for frameless window
 """
 
 from __future__ import annotations
@@ -22,27 +24,30 @@ from typing import TYPE_CHECKING, List, Optional
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import (
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLineEdit,
     QPushButton,
-    QWidget,
 )
+
+from .transparent_widget import TransparentWidget
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QPoint
+    from PySide6.QtWidgets import QWidget
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["InputPanel"]
 
 
-class InputPanel(QWidget):
+class InputPanel(TransparentWidget):
     """
-    输入面板组件
-    Input Panel Component
+    输入面板组件 (透明无边框窗口)
+    Input Panel Component (Frameless transparent window)
 
-    提供文本输入框，支持快捷键发送和输入历史浏览。
-    Provides text input with hotkey submission and history navigation.
+    继承 TransparentWidget 实现独立透明窗口，无系统装饰（标题栏/按钮）。
+    Inherits TransparentWidget for frameless window without title bar.
 
     Attributes:
         _input_field: 输入框 / Input field
@@ -70,7 +75,7 @@ class InputPanel(QWidget):
 
     def __init__(
         self,
-        parent: Optional[QWidget] = None,
+        parent: Optional["QWidget"] = None,
         *,
         max_history: int = 50,
         placeholder: str = "和我聊聊吧~",
@@ -88,7 +93,9 @@ class InputPanel(QWidget):
             max_length: 最大输入长度 / Max input length
             show_send_button: 是否显示发送按钮 / Show send button
         """
-        super().__init__(parent)
+        # 透明窗口，不可拖拽（由 UICoordinator 管理位置）
+        # Transparent window, not draggable (position managed by UICoordinator)
+        super().__init__(parent, enable_drag=False, stay_on_top=True)
 
         # 配置 / Configuration
         self._max_history = max_history
@@ -109,13 +116,16 @@ class InputPanel(QWidget):
         self.setup_ui()
         self.setup_style()
 
+        # 初始隐藏 / Initially hidden
+        self.hide()
+
     def setup_ui(self) -> None:
         """
         初始化 UI 布局
         Initialize UI layout
         """
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setContentsMargins(10, 2, 10, 2)
         layout.setSpacing(8)
 
         # 输入框 / Input field
@@ -129,8 +139,9 @@ class InputPanel(QWidget):
         # 发送按钮 / Send button
         if self._show_send_button:
             self._send_button = QPushButton("发送", self)
-            self._send_button.setObjectName("sendButton")  # 用于 QSS 选择器
-            self._send_button.setFixedWidth(60)
+            self._send_button.setObjectName("sendButton")
+            # 减小按钮宽度，留更多空间给输入框 / Reduce button width for input
+            self._send_button.setFixedWidth(50)
             self._send_button.clicked.connect(self._on_send_clicked)
             layout.addWidget(self._send_button)
 
@@ -160,7 +171,7 @@ class InputPanel(QWidget):
                     background-color: rgba(245, 245, 245, 0.9);
                     border: 1px solid rgba(0, 0, 0, 0.1);
                     border-radius: 6px;
-                    padding: 6px 10px;
+                    padding: 10px 12px;
                     font-size: 14px;
                     color: #333333;
                 }
@@ -168,7 +179,7 @@ class InputPanel(QWidget):
                     border: 1px solid #4A90D9;
                     background-color: white;
                 }
-                QPushButton {
+                QPushButton#sendButton {
                     background-color: #4A90D9;
                     color: white;
                     border: none;
@@ -176,14 +187,15 @@ class InputPanel(QWidget):
                     padding: 6px 12px;
                     font-size: 13px;
                 }
-                QPushButton:hover {
+                QPushButton#sendButton:hover {
                     background-color: #3A7FC8;
                 }
-                QPushButton:disabled {
+                QPushButton#sendButton:disabled {
                     background-color: #CCCCCC;
                 }
                 """
             )
+
 
     def set_placeholder(self, text: str) -> None:
         """

@@ -11,22 +11,26 @@ Components / 组件:
 - ChatBubble: 聊天气泡 / Chat bubble
 - SystemTray: 系统托盘 / System tray
 - MenuSystem: 右键菜单系统 / Context menu system
+- InputPanel: 输入面板 (Siri 风格) / Input panel (Siri-style)
+- UICoordinator: UI 协调器 (弹性跟随) / UI coordinator (elastic following)
 
 Reference:
     - MOD: .github/prds/modules/MOD-GUI.md
 
 Author: Rainze Team
 Created: 2025-12-30
+Updated: 2026-01-01 - Added UICoordinator for elastic following
 """
 
 from __future__ import annotations
 
-from .transparent_widget import TransparentWidget
-from .main_window import DisplayMode, MainWindow
 from .chat_bubble import ChatBubble
-from .system_tray import SystemTray
-from .menu_system import MenuItem, MenuSystem
 from .input_panel import InputPanel
+from .main_window import DisplayMode, MainWindow
+from .menu_system import MenuItem, MenuSystem
+from .system_tray import SystemTray
+from .transparent_widget import TransparentWidget
+from .ui_coordinator import AnchorConfig, SpringConfig, UICoordinator
 
 __all__ = [
     "TransparentWidget",
@@ -37,4 +41,7 @@ __all__ = [
     "MenuItem",
     "MenuSystem",
     "InputPanel",
+    "UICoordinator",
+    "SpringConfig",
+    "AnchorConfig",
 ]

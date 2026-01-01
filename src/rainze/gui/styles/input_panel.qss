@@ -24,7 +24,7 @@ InputPanel QLineEdit {
     background-color: rgba(245, 245, 245, 0.9);
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 10px 12px;
     font-size: 14px;
     color: #333333;
     selection-background-color: #4A90D9;
@@ -49,10 +49,10 @@ InputPanel QPushButton#sendButton {
     color: white;
     border: none;
     border-radius: 8px;
-    padding: 8px 16px;
+    padding: 8px 12px;
     font-size: 13px;
     font-weight: 500;
-    min-width: 60px;
+    min-width: 50px;
 }
 
 InputPanel QPushButton#sendButton:hover {

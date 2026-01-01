@@ -28,15 +28,15 @@ from __future__ import annotations
 import asyncio
 import sys
 import threading
-from pathlib import Path
 from collections.abc import Coroutine
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from PySide6.QtCore import QObject, Signal
 
 if TYPE_CHECKING:
-    from rainze.animation import AnimationController
     from rainze.agent import UnifiedContextManager
+    from rainze.animation import AnimationController
     from rainze.core.contracts import InteractionResponse
     from rainze.gui import ChatBubble, InputPanel, MainWindow
     from rainze.state import StateManager
@@ -299,7 +299,8 @@ class RainzeCoordinator(QObject):
         import logging
         logger = logging.getLogger(__name__)
 
-        logger.info(f"_on_response_ready: {response.response_text[:50] if response.response_text else 'None'}...")
+        text_preview = response.response_text[:50] if response.response_text else "None"
+        logger.info(f"_on_response_ready: {text_preview}...")
         self._display_response(response)
 
         # 清除处理中标志 / Clear processing flag
@@ -365,7 +366,8 @@ class RainzeCoordinator(QObject):
             # 2. 通过 UCM 处理（所有交互的唯一入口）
             # Process through UCM (single entry for all interactions)
             response = await self._ucm.process_interaction(request)
-            logger.info(f"UCM 响应: success={response.success}, text={response.response_text[:50] if response.response_text else 'None'}...")
+            text_preview = response.response_text[:50] if response.response_text else ""
+            logger.info(f"UCM 响应: success={response.success}, text={text_preview}...")
             return response
 
         except Exception as e:
@@ -563,14 +565,13 @@ def main() -> int:
 
     # 导入 PySide6
     # Import PySide6 (lazy import for faster startup)
-    from PySide6.QtCore import QPoint
     from PySide6.QtGui import QFontDatabase
     from PySide6.QtWidgets import QApplication
 
     from rainze.agent import UnifiedContextManager
     from rainze.animation import AnimationController
     from rainze.core import EventBus
-    from rainze.gui import ChatBubble, InputPanel, MainWindow, SystemTray
+    from rainze.gui import ChatBubble, InputPanel, MainWindow, SystemTray, UICoordinator
     from rainze.state import StateManager
 
     # 1. 创建 Qt 应用 / Create Qt application
@@ -681,6 +682,18 @@ def main() -> int:
     # 连接动画帧更新到主窗口 / Connect animation frame update to main window
     animation_controller.frame_ready.connect(main_window.update_frame)
 
+    # ========================================
+    # 7.1 创建 UI 协调器 (弹性跟随系统)
+    # Create UI Coordinator (elastic following system)
+    # ========================================
+
+    ui_coordinator = UICoordinator()
+    ui_coordinator.register_components(
+        main_window=main_window,
+        chat_bubble=chat_bubble,
+        input_panel=input_panel,
+    )
+
     # 窗口显示/隐藏 / Window show/hide
     def on_show_requested() -> None:
         main_window.show()
@@ -688,35 +701,37 @@ def main() -> int:
 
     def on_hide_requested() -> None:
         main_window.hide()
+        chat_bubble.hide()
+        input_panel.hide()
         system_tray.update_toggle_text(False)
 
     system_tray.show_requested.connect(on_show_requested)
     system_tray.hide_requested.connect(on_hide_requested)
     system_tray.quit_requested.connect(qt_app.quit)
 
-    # 点击显示气泡和输入面板 / Click shows bubble and input panel
+    # 点击显示气泡和输入面板 (使用 UICoordinator 管理位置)
+    # Click shows bubble and input panel (position managed by UICoordinator)
     def on_pet_clicked() -> None:
         # 如果正在处理请求，不要覆盖思考状态的气泡
         # Don't override thinking bubble if processing
         if coordinator.is_processing:
             return
 
-        # 在桌宠头顶显示气泡 / Show bubble above pet
-        anchor = QPoint(
-            main_window.x() + main_window.width() // 2,
-            main_window.y(),
-        )
+        # 使用 UICoordinator 更新气泡位置并显示
+        # Use UICoordinator to update bubble position and show
+        ui_coordinator.show_bubble_with_position()
         chat_bubble.show_text(
             "你好呀~ 点击我可以和我聊天哦！喵~",
             use_typing_effect=True,
-            anchor_point=anchor,
         )
-        # 显示输入面板 / Show input panel
-        input_anchor = QPoint(
-            main_window.x() + main_window.width() // 2,
-            main_window.y() + main_window.height() + 10,
-        )
-        input_panel.show_panel(input_anchor)
+
+        # 使用 UICoordinator 更新输入面板位置并显示
+        # Use UICoordinator to update input panel position and show
+        ui_coordinator.show_input_with_position()
+        input_panel.show()
+        input_panel.raise_()
+        input_panel.focus()
+        input_panel.panel_shown.emit()
 
     main_window.pet_clicked.connect(on_pet_clicked)
 
@@ -759,6 +774,7 @@ def main() -> int:
 
     # 清理回调 / Cleanup callback
     def cleanup() -> None:
+        ui_coordinator.cleanup()
         coordinator.cleanup()
         animation_controller.cleanup()
 
