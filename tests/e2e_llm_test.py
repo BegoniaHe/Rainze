@@ -30,8 +30,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from rainze.agent.context_manager import UnifiedContextManager
-from rainze.core.contracts import InteractionRequest, InteractionSource
+from rainze.agent.context_manager import UnifiedContextManager  # noqa: E402
+from rainze.core.contracts import InteractionRequest, InteractionSource  # noqa: E402
 
 # 配置日志 / Configure logging
 logging.basicConfig(
