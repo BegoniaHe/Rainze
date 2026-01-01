@@ -6,6 +6,7 @@ Memory Layers Implementation
 This module exports memory layer implementations.
 
 Exports:
+    - IdentityLayer: 身份层（Layer 1）/ Identity layer
     - WorkingMemory: 工作记忆（Layer 2）/ Working memory
     - ConversationTurn: 对话轮次 / Conversation turn
 
@@ -18,9 +19,19 @@ Created: 2025-12-30
 
 from __future__ import annotations
 
+from .identity import (
+    IdentityLayer,
+    IdentityLayerError,
+    PetIdentity,
+    UserProfile,
+)
 from .working import ConversationTurn, WorkingMemory
 
 __all__: list[str] = [
+    "IdentityLayer",
+    "UserProfile",
+    "PetIdentity",
+    "IdentityLayerError",
     "WorkingMemory",
     "ConversationTurn",
 ]
