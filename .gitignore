@@ -51,10 +51,21 @@ htmlcov/
 data/logs/
 logs/
 
-# Local data
-data/db/
+# Local data - Memory & FAISS
+data/memory.db
+data/memory.db-*
+data/faiss_index.bin
+data/faiss_metadata.json
 data/faiss/
 data/cache/
+data/pending_vectorization.json
+
+# Database artifacts
+data/db/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
 
 # Config secrets (keep templates)
 config/*.local.json
@@ -98,5 +109,20 @@ ehthumbs.db
 *.temp
 .temp/
 
-# uv lock file (optional: remove this line if you want to track it)
-uv.lock
+# uv lock file
+# Note: We track uv.lock to ensure reproducible builds
+# uv.lock
+
+# Phase 1 Implementation - Generated files
+PHASE1_REPORT.md
+PRD-Implementation-Status.md
+
+# User-specific data (do not commit)
+data/user_data/
+config/identity.local.json
+config/master_profile.local.json
+
+# Temporary development files
+*.draft.md
+*.wip.py
+*.backup.*

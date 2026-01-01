@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Master Profile",
   "description": "用户画像配置 / User profile configuration. Reference: PRD 0.2 (Layer 1: Identity Layer)",
-  
   "user": {
     "nickname": "主人",
     "birthday": null,
@@ -19,7 +18,6 @@
     },
     "notes": []
   },
-  
   "pet": {
     "name": "Rainze",
     "name_cn": "忆雨",
@@ -28,7 +26,6 @@
     "custom_traits": [],
     "voice_style": "cute_casual"
   },
-  
   "relationship": {
     "days_together": 0,
     "interaction_count": 0,
@@ -36,7 +33,6 @@
     "memorable_events": [],
     "last_interaction": null
   },
-  
   "facts": {
     "user_likes": [],
     "user_dislikes": [],
