@@ -160,13 +160,13 @@ mod tests {
     fn test_cpu_usage_range() {
         let monitor = SystemMonitor::new();
         let usage = monitor.get_cpu_usage();
-        assert!(usage >= 0.0 && usage <= 100.0);
+        assert!((0.0..=100.0).contains(&usage));
     }
 
     #[test]
     fn test_memory_usage_range() {
         let monitor = SystemMonitor::new();
         let usage = monitor.get_memory_usage();
-        assert!(usage >= 0.0 && usage <= 100.0);
+        assert!((0.0..=100.0).contains(&usage));
     }
 }

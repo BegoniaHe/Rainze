@@ -1,0 +1,106 @@
+/*
+ * Rainze GUI - 输入面板样式
+ * Input Panel Styles
+ *
+ * Author: Rainze Team
+ * Created: 2025-12-31
+ */
+
+/* ========================================
+ * 面板容器 / Panel Container
+ * ======================================== */
+
+InputPanel {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+ * 输入框 / Input Field
+ * ======================================== */
+
+InputPanel QLineEdit {
+    background-color: rgba(245, 245, 245, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #333333;
+    selection-background-color: #4A90D9;
+    selection-color: white;
+}
+
+InputPanel QLineEdit:focus {
+    border: 1.5px solid #4A90D9;
+    background-color: white;
+}
+
+InputPanel QLineEdit::placeholder {
+    color: #999999;
+}
+
+/* ========================================
+ * 发送按钮 / Send Button
+ * ======================================== */
+
+InputPanel QPushButton#sendButton {
+    background-color: #4A90D9;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 60px;
+}
+
+InputPanel QPushButton#sendButton:hover {
+    background-color: #3A7FC8;
+}
+
+InputPanel QPushButton#sendButton:pressed {
+    background-color: #2A6EB7;
+}
+
+InputPanel QPushButton#sendButton:disabled {
+    background-color: #CCCCCC;
+    color: #888888;
+}
+
+/* ========================================
+ * 加载状态 / Loading State
+ * ======================================== */
+
+InputPanel[loading="true"] QLineEdit {
+    background-color: rgba(240, 240, 240, 0.9);
+    color: #888888;
+}
+
+InputPanel[loading="true"] QPushButton#sendButton {
+    background-color: #888888;
+}
+
+/* ========================================
+ * 暗色主题变体 / Dark Theme Variant
+ * ======================================== */
+
+InputPanel[theme="dark"] {
+    background-color: rgba(40, 40, 40, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+InputPanel[theme="dark"] QLineEdit {
+    background-color: rgba(60, 60, 60, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #E0E0E0;
+}
+
+InputPanel[theme="dark"] QLineEdit:focus {
+    border: 1.5px solid #4A90D9;
+    background-color: rgba(50, 50, 50, 1);
+}
+
+InputPanel[theme="dark"] QLineEdit::placeholder {
+    color: #777777;
+}

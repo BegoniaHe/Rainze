@@ -11,10 +11,12 @@ Reference:
 
 Author: Rainze Team
 Created: 2025-12-30
+Updated: 2025-12-31 - 使用外部 QSS 样式
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from PySide6.QtCore import QPoint, QPropertyAnimation, Qt, QTimer, Signal
@@ -29,6 +31,8 @@ from PySide6.QtWidgets import (
 )
 
 from .transparent_widget import TransparentWidget
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["ChatBubble"]
 
@@ -98,10 +102,12 @@ class ChatBubble(TransparentWidget):
         self._displayed_chars: int = 0
         self._is_typing: bool = False
 
-        # UI 组件 / UI components
-        self._text_label: Optional[QLabel] = None
-        self._like_button: Optional[QPushButton] = None
-        self._dislike_button: Optional[QPushButton] = None
+        # UI 组件将在 setup_ui() 中初始化 / UI components will be initialized in setup_ui()
+        # 使用占位符避免 None，因为 setup_ui() 会立即调用
+        # Use placeholder to avoid None since setup_ui() is called immediately
+        self._text_label: QLabel = QLabel()
+        self._like_button: QPushButton | None = None
+        self._dislike_button: QPushButton | None = None
 
         # 定时器 / Timers
         self._typing_timer = QTimer(self)
@@ -161,36 +167,43 @@ class ChatBubble(TransparentWidget):
 
     def setup_style(self) -> None:
         """
-        设置气泡样式
-        Setup bubble style
+        设置气泡样式（从外部 QSS 文件加载）
+        Setup bubble style (load from external QSS file)
 
         配置圆角背景、半透明效果、阴影效果。
         Configure rounded background, translucent effect, shadow.
         """
-        self.setStyleSheet(
-            """
-            ChatBubble {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 15px;
-                border: 1px solid rgba(0, 0, 0, 0.1);
-            }
-            QLabel {
-                color: #333333;
-                font-size: 14px;
-                font-family: "Maple Mono NF CN", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-                background: transparent;
-            }
-            QPushButton {
-                background-color: transparent;
-                border: none;
-                font-size: 16px;
-            }
-            QPushButton:hover {
-                background-color: rgba(0, 0, 0, 0.05);
-                border-radius: 15px;
-            }
-            """
-        )
+        try:
+            from rainze.gui.styles import load_styles
+            style = load_styles("base", "chat_bubble")
+            self.setStyleSheet(style)
+            logger.debug("ChatBubble 样式加载成功")
+        except Exception as e:
+            logger.warning(f"加载外部样式失败，使用内联样式: {e}")
+            # 内联样式作为后备 / Inline style as fallback
+            self.setStyleSheet(
+                """
+                ChatBubble {
+                    background-color: rgba(255, 255, 255, 0.95);
+                    border-radius: 15px;
+                    border: 1px solid rgba(0, 0, 0, 0.1);
+                }
+                QLabel {
+                    color: #333333;
+                    font-size: 14px;
+                    background: transparent;
+                }
+                QPushButton {
+                    background-color: transparent;
+                    border: none;
+                    font-size: 16px;
+                }
+                QPushButton:hover {
+                    background-color: rgba(0, 0, 0, 0.05);
+                    border-radius: 15px;
+                }
+                """
+            )
 
     def show_text(
         self,

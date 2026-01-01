@@ -1,0 +1,65 @@
+/*
+ * Rainze GUI - 聊天气泡样式
+ * Chat Bubble Styles
+ *
+ * Author: Rainze Team
+ * Created: 2025-12-31
+ */
+
+/* ========================================
+ * 气泡容器 / Bubble Container
+ * ======================================== */
+
+ChatBubble {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+ * 文本标签 / Text Label
+ * ======================================== */
+
+ChatBubble QLabel {
+    color: #333333;
+    font-size: 14px;
+    background: transparent;
+    line-height: 1.5;
+}
+
+/* ========================================
+ * 反馈按钮 / Feedback Buttons
+ * ======================================== */
+
+ChatBubble QPushButton {
+    background-color: transparent;
+    border: none;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 15px;
+}
+
+ChatBubble QPushButton:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+ChatBubble QPushButton:pressed {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+ * 暗色主题变体 / Dark Theme Variant
+ * ======================================== */
+
+ChatBubble[theme="dark"] {
+    background-color: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+ChatBubble[theme="dark"] QLabel {
+    color: #E0E0E0;
+}
+
+ChatBubble[theme="dark"] QPushButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}

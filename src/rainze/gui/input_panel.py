@@ -11,10 +11,12 @@ Reference:
 
 Author: Rainze Team
 Created: 2025-12-30
+Updated: 2025-12-31 - 使用外部 QSS 样式
 """
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, List, Optional
 
 from PySide6.QtCore import Qt, Signal
@@ -28,6 +30,8 @@ from PySide6.QtWidgets import (
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QPoint
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["InputPanel"]
 
@@ -125,6 +129,7 @@ class InputPanel(QWidget):
         # 发送按钮 / Send button
         if self._show_send_button:
             self._send_button = QPushButton("发送", self)
+            self._send_button.setObjectName("sendButton")  # 用于 QSS 选择器
             self._send_button.setFixedWidth(60)
             self._send_button.clicked.connect(self._on_send_clicked)
             layout.addWidget(self._send_button)
@@ -133,52 +138,52 @@ class InputPanel(QWidget):
 
     def setup_style(self) -> None:
         """
-        设置样式
-        Setup style
+        设置样式（从外部 QSS 文件加载）
+        Setup style (load from external QSS file)
         """
-        self.setStyleSheet(
-            """
-            InputPanel {
-                background-color: rgba(255, 255, 255, 0.95);
-                border-radius: 10px;
-                border: 1px solid rgba(0, 0, 0, 0.1);
-            }
-            QLineEdit {
-                background-color: rgba(245, 245, 245, 0.9);
-                border: 1px solid rgba(0, 0, 0, 0.1);
-                border-radius: 6px;
-                padding: 6px 10px;
-                font-size: 14px;
-                font-family: "Maple Mono NF CN", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-                color: #333333;
-            }
-            QLineEdit:focus {
-                border: 1px solid #4A90D9;
-                background-color: white;
-            }
-            QLineEdit::placeholder {
-                color: #999999;
-            }
-            QPushButton {
-                background-color: #4A90D9;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-size: 13px;
-                font-family: "Maple Mono NF CN", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-            }
-            QPushButton:hover {
-                background-color: #3A7FC8;
-            }
-            QPushButton:pressed {
-                background-color: #2A6EB7;
-            }
-            QPushButton:disabled {
-                background-color: #CCCCCC;
-            }
-            """
-        )
+        try:
+            from rainze.gui.styles import load_styles
+            style = load_styles("base", "input_panel")
+            self.setStyleSheet(style)
+            logger.debug("InputPanel 样式加载成功")
+        except Exception as e:
+            logger.warning(f"加载外部样式失败，使用内联样式: {e}")
+            # 内联样式作为后备 / Inline style as fallback
+            self.setStyleSheet(
+                """
+                InputPanel {
+                    background-color: rgba(255, 255, 255, 0.95);
+                    border-radius: 10px;
+                    border: 1px solid rgba(0, 0, 0, 0.1);
+                }
+                QLineEdit {
+                    background-color: rgba(245, 245, 245, 0.9);
+                    border: 1px solid rgba(0, 0, 0, 0.1);
+                    border-radius: 6px;
+                    padding: 6px 10px;
+                    font-size: 14px;
+                    color: #333333;
+                }
+                QLineEdit:focus {
+                    border: 1px solid #4A90D9;
+                    background-color: white;
+                }
+                QPushButton {
+                    background-color: #4A90D9;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 6px 12px;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background-color: #3A7FC8;
+                }
+                QPushButton:disabled {
+                    background-color: #CCCCCC;
+                }
+                """
+            )
 
     def set_placeholder(self, text: str) -> None:
         """
