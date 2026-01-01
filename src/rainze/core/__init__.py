@@ -37,6 +37,15 @@ from .exceptions import (
     ShutdownError,
     StartupError,
 )
+from .resources import (
+    ResourceManager,
+    get_animation_dir,
+    get_asset,
+    get_assets_dir,
+    get_config_dir,
+    get_icon,
+    get_style,
+)
 from .schemas import AppConfig, GUIConfig
 
 __all__: list[str] = [
@@ -54,4 +63,11 @@ __all__: list[str] = [
     "EventError",
     "AppConfig",
     "GUIConfig",
+    "ResourceManager",
+    "get_animation_dir",
+    "get_asset",
+    "get_assets_dir",
+    "get_config_dir",
+    "get_icon",
+    "get_style",
 ]

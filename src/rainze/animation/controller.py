@@ -34,6 +34,7 @@ from PySide6.QtGui import QPainter, QPixmap
 from rainze.animation.frames import FramePlayer
 from rainze.animation.layers import AnimationLayer
 from rainze.animation.models import AnimationState, BlendMode
+from rainze.core import get_assets_dir
 
 # ⭐ 从 core.contracts 导入统一类型，禁止本模块重复定义
 # Import unified types from core.contracts, NO duplicate definitions
@@ -146,7 +147,11 @@ class AnimationController(QObject):
 
         # 依赖注入 / Dependency injection
         self._event_bus = event_bus
-        self._resource_path = Path(resource_path) if resource_path else None
+        # 使用资源管理器获取动画根目录 / Use resource manager to get animations root
+        if resource_path:
+            self._resource_path = Path(resource_path)
+        else:
+            self._resource_path = get_assets_dir() / "animations"
 
         # 渲染参数 / Rendering parameters
         self._fps = fps
@@ -443,11 +448,6 @@ class AnimationController(QObject):
         # Lazy load behavior script if not loaded yet
         if self._behavior_manager is None and self._resource_path:
             self._load_behavior_script()
-
-        # 检查资源路径是否设置 / Check if resource path is set
-        if not self._resource_path:
-            logger.warning("资源路径未设置，无法加载动画")
-            return
 
         # 构建动画路径 / Build animation path
         animation_path = self._resource_path / animation_name / variant

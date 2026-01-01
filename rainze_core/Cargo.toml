@@ -52,8 +52,10 @@ serde_json = "1.0"
 # 日志 / Logging
 tracing = "0.1"
 
-# FAISS 向量搜索 / FAISS Vector Search
-faiss = "0.13"
+# FAISS 向量搜索 (暂不使用 Rust 绑定)
+# FAISS Vector Search (not using Rust bindings for now)
+# 使用 Python faiss-cpu 库 / Using Python faiss-cpu library
+# faiss = "0.13"
 
 # Windows API (条件编译 / Conditional Compilation)
 [target.'cfg(windows)'.dependencies]

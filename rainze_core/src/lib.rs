@@ -41,8 +41,10 @@ fn rainze_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // 注册系统监控类 / Register system monitor class
     m.add_class::<system_monitor::SystemMonitor>()?;
 
-    // 注册记忆检索模块 / Register memory search module
-    memory_search::register_module(m)?;
+    // 注册记忆检索模块 (暂未实现 Rust FAISS 绑定)
+    // Register memory search module (Rust FAISS binding not implemented yet)
+    // 使用 Python faiss-cpu 库 / Using Python faiss-cpu library
+    // memory_search::register_module(m)?;
 
     // 注册版本信息 / Register version info
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

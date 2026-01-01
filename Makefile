@@ -33,8 +33,8 @@ ifeq ($(OS),Windows_NT)
     PYTEST := $(VENV)\Scripts\pytest.exe
     # MinGW 路径 / MinGW path
     MINGW_PATH := C:\msys64\mingw64\bin
-    # Wheel 文件名 / Wheel filename
-    RUST_WHEEL_PATTERN := rainze_core-*-cp312-cp312-win_amd64.whl
+    # Wheel 文件名 / Wheel filename (abi3 支持 Python 3.9+)
+    RUST_WHEEL_PATTERN := rainze_core-*-cp39-abi3-win_amd64.whl
 else
     UNAME_S := $(shell uname -s)
     ifeq ($(UNAME_S),Darwin)
@@ -42,13 +42,13 @@ else
         # macOS wheel 架构检测 / macOS wheel architecture detection
         UNAME_M := $(shell uname -m)
         ifeq ($(UNAME_M),arm64)
-            RUST_WHEEL_PATTERN := rainze_core-*-cp312-cp312-macosx_*_arm64.whl
+            RUST_WHEEL_PATTERN := rainze_core-*-cp39-abi3-macosx_*_arm64.whl
         else
-            RUST_WHEEL_PATTERN := rainze_core-*-cp312-cp312-macosx_*_x86_64.whl
+            RUST_WHEEL_PATTERN := rainze_core-*-cp39-abi3-macosx_*_x86_64.whl
         endif
     else
         PLATFORM := linux
-        RUST_WHEEL_PATTERN := rainze_core-*-cp312-cp312-manylinux*.whl
+        RUST_WHEEL_PATTERN := rainze_core-*-cp39-abi3-manylinux*.whl
     endif
     SHELL := /bin/bash
     .SHELLFLAGS := -c
@@ -136,9 +136,13 @@ ifeq ($(PLATFORM),windows)
 	@Write-Host "  make typecheck  - 类型检查 / Type check"
 	@Write-Host "  make check      - 运行所有检查 / Run all checks"
 	@Write-Host ""
-	@Write-Host "Clean / 清理:" -ForegroundColor Yellow
-	@Write-Host "  make clean      - 清理构建产物 / Clean build artifacts"
-	@Write-Host "  make clean-all  - 完全清理 / Full clean (including venv)"
+	@Write-Host "Packaging / 打包:" -ForegroundColor Yellow
+	@Write-Host "  make package           - 打包应用 (目录模式) / Package app (directory mode)"
+	@Write-Host "  make package-onefile   - 打包单文件应用 / Package as single file"
+	@Write-Host "  make package-zip       - 创建 ZIP 分发包 / Create ZIP distribution"
+	@Write-Host "  make package-dmg       - 创建 DMG 镜像 (仅 macOS) / Create DMG (macOS only)"
+	@Write-Host "  make package-all       - 创建所有打包格式 / Create all package formats"
+	@Write-Host "  make clean-dist        - 清理打包产物 / Clean dist artifacts"
 	@Write-Host ""
 else
 	@printf "\033[36mRainze Makefile - AI Desktop Pet\033[0m\n"
@@ -165,9 +169,13 @@ else
 	@printf "  make typecheck  - 类型检查 / Type check\n"
 	@printf "  make check      - 运行所有检查 / Run all checks\n"
 	@printf "\n"
-	@printf "\033[33mClean / 清理:\033[0m\n"
-	@printf "  make clean      - 清理构建产物 / Clean build artifacts\n"
-	@printf "  make clean-all  - 完全清理 / Full clean (including venv)\n"
+	@printf "\033[33mPackaging / 打包:\033[0m\n"
+	@printf "  make package           - 打包应用 (目录模式) / Package app (directory mode)\n"
+	@printf "  make package-onefile   - 打包单文件应用 / Package as single file\n"
+	@printf "  make package-zip       - 创建 ZIP 分发包 / Create ZIP distribution\n"
+	@printf "  make package-dmg       - 创建 DMG 镜像 (仅 macOS) / Create DMG (macOS only)\n"
+	@printf "  make package-all       - 创建所有打包格式 / Create all package formats\n"
+	@printf "  make clean-dist        - 清理打包产物 / Clean dist artifacts\n"
 	@printf "\n"
 endif
 
@@ -412,9 +420,115 @@ endif
 .PHONY: package
 package: build
 ifeq ($(PLATFORM),windows)
-	@Write-Host " 打包应用 / Packaging application..." -ForegroundColor Cyan
-	@Write-Host "  TODO: 实现打包逻辑 / TODO: Implement packaging" -ForegroundColor Yellow
+	@Write-Host "📦 打包应用 / Packaging application..." -ForegroundColor Cyan
+	@& "$(PYTHON)" -m PyInstaller rainze.spec --clean --noconfirm
+	@Write-Host " 打包完成！/ Package complete!" -ForegroundColor Green
+	@Write-Host "  输出目录 / Output: dist\Rainze\" -ForegroundColor Yellow
 else
-	@printf "\033[36m 打包应用 / Packaging application...\033[0m\n"
-	@printf "\033[33m  TODO: 实现打包逻辑 / TODO: Implement packaging\033[0m\n"
+	@printf "\033[36m📦 打包应用 / Packaging application...\033[0m\n"
+	@$(PYTHON) -m PyInstaller rainze.spec --clean --noconfirm
+	@printf "\033[32m 打包完成！/ Package complete!\033[0m\n"
+ifeq ($(PLATFORM),macos)
+	@printf "\033[33m  输出目录 / Output: dist/Rainze.app\033[0m\n"
+else
+	@printf "\033[33m  输出目录 / Output: dist/Rainze/\033[0m\n"
+endif
+endif
+
+.PHONY: package-onefile
+package-onefile: build
+ifeq ($(PLATFORM),windows)
+	@Write-Host "📦 打包单文件应用 / Packaging as single file..." -ForegroundColor Cyan
+	@& "$(PYTHON)" -m PyInstaller src/rainze/main.py --name Rainze --onefile --windowed --clean --noconfirm --icon assets/ui/icons/rainze.ico
+	@Write-Host " 单文件打包完成！/ Single-file package complete!" -ForegroundColor Green
+	@Write-Host "  输出文件 / Output: dist\Rainze.exe" -ForegroundColor Yellow
+else
+	@printf "\033[36m📦 打包单文件应用 / Packaging as single file...\033[0m\n"
+ifeq ($(PLATFORM),macos)
+	@$(PYTHON) -m PyInstaller src/rainze/main.py --name Rainze --onefile --windowed --clean --noconfirm --icon assets/ui/icons/rainze.icns
+else
+	@$(PYTHON) -m PyInstaller src/rainze/main.py --name Rainze --onefile --windowed --clean --noconfirm
+endif
+	@printf "\033[32m 单文件打包完成！/ Single-file package complete!\033[0m\n"
+	@printf "\033[33m  输出文件 / Output: dist/Rainze\033[0m\n"
+endif
+
+.PHONY: package-dir
+package-dir: package
+ifeq ($(PLATFORM),windows)
+	@Write-Host "📦 创建分发目录 / Creating distribution directory..." -ForegroundColor Cyan
+	@New-Item -ItemType Directory -Force -Path "dist\Rainze-$(PLATFORM)" | Out-Null
+	@Copy-Item -Recurse -Force "dist\Rainze\*" "dist\Rainze-$(PLATFORM)\"
+	@Copy-Item -Force "README.md", "LICENSE" "dist\Rainze-$(PLATFORM)\" -ErrorAction SilentlyContinue
+	@Write-Host " 分发目录创建完成！/ Distribution directory created!" -ForegroundColor Green
+	@Write-Host "  位置 / Location: dist\Rainze-$(PLATFORM)\" -ForegroundColor Yellow
+else
+	@printf "\033[36m📦 创建分发目录 / Creating distribution directory...\033[0m\n"
+	@mkdir -p "dist/Rainze-$(PLATFORM)"
+ifeq ($(PLATFORM),macos)
+	@cp -R dist/Rainze.app "dist/Rainze-$(PLATFORM)/"
+else
+	@cp -R dist/Rainze/* "dist/Rainze-$(PLATFORM)/"
+endif
+	@cp README.md LICENSE "dist/Rainze-$(PLATFORM)/" 2>/dev/null || true
+	@printf "\033[32m 分发目录创建完成！/ Distribution directory created!\033[0m\n"
+	@printf "\033[33m  位置 / Location: dist/Rainze-$(PLATFORM)/\033[0m\n"
+endif
+
+.PHONY: package-zip
+package-zip: package-dir
+ifeq ($(PLATFORM),windows)
+	@Write-Host "📦 创建 ZIP 压缩包 / Creating ZIP archive..." -ForegroundColor Cyan
+	@Push-Location dist; Compress-Archive -Force -Path "Rainze-$(PLATFORM)" -DestinationPath "Rainze-$(PLATFORM).zip"; Pop-Location
+	@Write-Host " ZIP 创建完成！/ ZIP created!" -ForegroundColor Green
+	@Write-Host "  文件 / File: dist\Rainze-$(PLATFORM).zip" -ForegroundColor Yellow
+else
+	@printf "\033[36m📦 创建 ZIP 压缩包 / Creating ZIP archive...\033[0m\n"
+	@cd dist && zip -r "Rainze-$(PLATFORM).zip" "Rainze-$(PLATFORM)"
+	@printf "\033[32m ZIP 创建完成！/ ZIP created!\033[0m\n"
+	@printf "\033[33m  文件 / File: dist/Rainze-$(PLATFORM).zip\033[0m\n"
+endif
+
+.PHONY: package-dmg
+package-dmg: package
+ifeq ($(PLATFORM),macos)
+	@printf "\033[36m📦 创建 DMG 镜像 / Creating DMG image...\033[0m\n"
+	@hdiutil create -volname "Rainze" -srcfolder dist/Rainze.app -ov -format UDZO dist/Rainze-macos.dmg
+	@printf "\033[32m DMG 创建完成！/ DMG created!\033[0m\n"
+	@printf "\033[33m  文件 / File: dist/Rainze-macos.dmg\033[0m\n"
+else
+	@printf "\033[31m⚠️  DMG 仅支持 macOS / DMG only available on macOS\033[0m\n"
+endif
+
+.PHONY: package-installer
+package-installer: package-dir
+ifeq ($(PLATFORM),windows)
+	@Write-Host "📦 创建安装程序 / Creating installer..." -ForegroundColor Cyan
+	@Write-Host "⚠️  需要 Inno Setup / Requires Inno Setup" -ForegroundColor Yellow
+	@Write-Host "  TODO: 实现 Inno Setup 脚本 / TODO: Implement Inno Setup script" -ForegroundColor Yellow
+else
+	@printf "\033[33m⚠️  安装程序创建仅支持 Windows / Installer creation only for Windows\033[0m\n"
+endif
+
+.PHONY: package-all
+package-all: package-zip
+ifeq ($(PLATFORM),macos)
+	@$(MAKE) package-dmg
+endif
+ifeq ($(PLATFORM),windows)
+	@Write-Host " 所有打包完成！/ All packages created!" -ForegroundColor Green
+else
+	@printf "\033[32m 所有打包完成！/ All packages created!\033[0m\n"
+endif
+
+.PHONY: clean-dist
+clean-dist:
+ifeq ($(PLATFORM),windows)
+	@Write-Host "🧹 清理打包产物 / Cleaning dist..." -ForegroundColor Cyan
+	@Remove-Item -Recurse -Force -ErrorAction SilentlyContinue dist, build, *.spec
+	@Write-Host " 打包产物清理完成！/ Dist cleaned!" -ForegroundColor Green
+else
+	@printf "\033[36m🧹 清理打包产物 / Cleaning dist...\033[0m\n"
+	@rm -rf dist build *.spec
+	@printf "\033[32m 打包产物清理完成！/ Dist cleaned!\033[0m\n"
 endif

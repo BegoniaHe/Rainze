@@ -22,6 +22,8 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
+from rainze.core import get_icon
+
 if TYPE_CHECKING:
     from rainze.core import EventBus
 
@@ -76,7 +78,8 @@ class SystemTray(QObject):
 
         self._event_bus = event_bus
         self._app_name = app_name
-        self._icon_path = icon_path or Path("./assets/ui/icons/tray_icon.png")
+        # 使用资源管理器获取图标路径 / Use resource manager to get icon path
+        self._icon_path = icon_path or get_icon("tray_icon.png")
 
         # 托盘图标和菜单将在 setup 方法中初始化 / Tray icon and menu will be initialized in setup methods
         # 使用占位符避免 None，因为 setup 方法会立即调用
